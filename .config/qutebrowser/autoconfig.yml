@@ -10,3 +10,5 @@ settings:
     global: 16pt
   statusbar.show:
     global: never
+  zoom.default:
+    global: 150%
