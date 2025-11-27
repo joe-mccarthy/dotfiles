@@ -111,3 +111,55 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
+
+# ========== Catppuccin Mocha Bash Prompt (simple & stable) ==========
+
+# Non-printing reset
+RESET="\[\e[0m\]"
+
+# Catppuccin Mocha colours (truecolor)
+FG_TEXT="\[\e[38;2;205;214;244m\]"      # text
+FG_SUBTEXT="\[\e[38;2;166;173;200m\]"   # subtext0
+FG_BLUE="\[\e[38;2;137;180;250m\]"      # blue
+FG_GREEN="\[\e[38;2;166;227;161m\]"     # green
+FG_RED="\[\e[38;2;243;139;168m\]"       # red
+FG_YELLOW="\[\e[38;2;249;226;175m\]"    # yellow
+FG_SURFACE0="\[\e[38;2;137;180;250m\]"  # bright catppuccin blue
+
+# Nerd Font icons (JetBrainsMono Nerd Font)
+ICON_USER=""
+ICON_FOLDER=""
+ICON_GIT=""
+ICON_CLOCK=""
+
+# Git helpers
+parse_git_branch() {
+  git rev-parse --abbrev-ref HEAD 2>/dev/null
+}
+
+parse_git_dirty() {
+  if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    echo "*"
+  fi
+}
+
+build_prompt() {
+  local branch dirty git_part
+
+  branch=$(parse_git_branch)
+  dirty=$(parse_git_dirty)
+
+  if [ -n "$branch" ]; then
+    git_part=" ${FG_BLUE}${ICON_GIT} ${branch}${dirty}"
+  else
+    git_part=""
+  fi
+
+  # First line: user, path, git
+  # Second line: time and prompt char
+  PS1="${FG_GREEN}${ICON_USER} \u ${FG_BLUE}${ICON_FOLDER} \w${git_part}\n${FG_SURFACE0}${ICON_CLOCK} \t ${RESET}\$ "
+}
+
+PROMPT_COMMAND=build_prompt
+# ===============================================================
+
