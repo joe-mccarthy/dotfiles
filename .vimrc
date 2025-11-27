@@ -6,4 +6,12 @@ set autoindent
 set mouse=a
 syntax on
 filetype on
-set termguicolors
+
+" Use truecolour in terminal (Kitty supports this)
+if has('termguicolors')
+  set termguicolors
+endif
+
+syntax on
+set background=dark
+colorscheme catppuccin_mocha
