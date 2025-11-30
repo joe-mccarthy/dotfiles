@@ -6,6 +6,8 @@
 
 config_version: 2
 settings:
+  content.webgl:
+    global: true
   fonts.default_size:
     global: 16pt
   statusbar.show:
