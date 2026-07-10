@@ -41,11 +41,11 @@ The i3 desktop config now lives in this repo:
 - `.config/picom/` for compositor settings
 - `.local/bin/i3-*` and `.local/bin/i3status-wrapper` for helper scripts
 
-The current setup includes rofi launcher modes, CopyQ clipboard history, dunst notifications, screenshots, power menu, lock screen polish, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network helpers, wallpaper startup, kitty terminal, and the customised i3bar/i3status display.
+The current setup includes rofi launcher modes, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network helpers, wallpaper startup, kitty terminal, and the customised i3bar/i3status display.
 
 After the first install from GNOME, log out, select `i3` from the login screen session chooser, then log back in.
 
-Clipboard history is handled by CopyQ with a rofi picker. Use `$mod+c` to search clipboard history and restore the selected item to the clipboard, `$mod+Shift+v` to open the full CopyQ window, and `$mod+Control+c` for clipboard actions such as pause, resume, clear, or quit.
+Clipboard history is handled by CopyQ with a rofi picker and no tray icon. Use `$mod+c` to search clipboard history and restore the selected item to the clipboard, `$mod+Control+v` to pick and paste an item immediately, `$mod+Shift+v` to open the full CopyQ window, and `$mod+Control+c` for clipboard actions such as delete item, pause, resume, clear, or quit.
 
 Monitor layouts are handled by `.local/bin/i3-monitor-layout`. Use `$mod+p` or the display key to open the layout menu. Startup runs the `auto` layout, which uses the laptop display by itself when undocked and makes the external display primary when one is connected. i3bar is pinned to the current primary output.
 

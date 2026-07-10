@@ -25,12 +25,29 @@ fi
 
 printf 'Using %s\n' "$copyq_bin" >>"$log_file"
 
+set_option() {
+        option="$1"
+        value="$2"
+
+        if "$copyq_bin" --start-server config "$option" "$value" >>"$log_file" 2>&1; then
+                printf 'Set %s=%s\n' "$option" "$value" >>"$log_file"
+                return 0
+        fi
+
+        status=$?
+        printf 'Failed to set %s=%s: %s\n' "$option" "$value" "$status" >>"$log_file"
+        return "$status"
+}
+
+set_option disable_tray true || exit $?
+set_option hide_main_window true || exit $?
+set_option clipboard_notification_lines 0 || exit $?
+set_option item_popup_interval 0 || exit $?
+
 if "$copyq_bin" count >/dev/null 2>&1; then
-        printf 'CopyQ server already reachable\n' >>"$log_file"
+        printf 'CopyQ server reachable\n' >>"$log_file"
         exit 0
 fi
 
-"$copyq_bin" --start-server >>"$log_file" 2>&1
-status=$?
-printf 'copyq --start-server exited %s\n' "$status" >>"$log_file"
-exit "$status"
+printf 'CopyQ server was configured but is not reachable\n' >>"$log_file"
+exit 1

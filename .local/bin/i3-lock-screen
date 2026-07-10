@@ -1,101 +1,26 @@
 #!/bin/sh
 
-tool_root="$HOME/.local/opt/screenshot-tools"
-tool_lib="$tool_root/usr/lib/x86_64-linux-gnu"
-local_maim="$tool_root/usr/bin/maim"
-runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
-lock_dir="$runtime_dir/i3lock"
-raw_image="$lock_dir/raw.png"
-lock_image="$lock_dir/lock.png"
-title_file="$lock_dir/title.txt"
-time_file="$lock_dir/time.txt"
-date_file="$lock_dir/date.txt"
-font_file=$(fc-match -f '%{file}\n' monospace 2>/dev/null | head -n 1)
-dark_color="1d2021"
+lock_color="1d2021"
 
-find_tool() {
-        name="$1"
-        fallback="$2"
-
-        if command -v "$name" >/dev/null 2>&1; then
-                command -v "$name"
-                return
-        fi
-
-        [ -x "$fallback" ] && printf '%s\n' "$fallback"
+lock_screen() {
+        exec i3lock -n -e -f -c "$lock_color"
 }
 
-maim="$(find_tool maim "$local_maim")"
-
-notify() {
-        if command -v dunstify >/dev/null 2>&1; then
-                dunstify "$1" "$2"
-        fi
-}
-
-run_maim() {
-        case "$maim" in
-                "$tool_root"/*) LD_LIBRARY_PATH="$tool_lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$maim" "$@" ;;
-                *) "$maim" "$@" ;;
-        esac
-}
-
-solid_lock() {
-        i3lock -n -e -f -c "$dark_color"
-}
-
-generate_image() {
-        mkdir -p "$lock_dir" || return 1
-
-        [ -n "$maim" ] || return 1
-        command -v ffmpeg >/dev/null 2>&1 || return 1
-        [ -n "$font_file" ] && [ -r "$font_file" ] || return 1
-
-        run_maim -u "$raw_image" || return 1
-
-        printf 'Locked\n' > "$title_file"
-        date '+%H:%M' > "$time_file"
-        date '+%A %d %B' > "$date_file"
-
-        ffmpeg -hide_banner -loglevel error -y \
-                -i "$raw_image" \
-                -vf "gblur=sigma=16,eq=brightness=-0.22:saturation=0.75,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.18:t=fill,drawtext=fontfile=${font_file}:textfile=${title_file}:fontcolor=0xEBDBB2:fontsize=38:x=(w-text_w)/2:y=(h-text_h)/2-72,drawtext=fontfile=${font_file}:textfile=${time_file}:fontcolor=0x8EC07C:fontsize=76:x=(w-text_w)/2:y=(h-text_h)/2-12,drawtext=fontfile=${font_file}:textfile=${date_file}:fontcolor=0xA89984:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2+76" \
-                -frames:v 1 "$lock_image" || return 1
-
-        [ -s "$lock_image" ]
-}
-
-lock_with_image() {
-        if generate_image; then
-                i3lock -n -e -f -i "$lock_image"
-        else
-                solid_lock
-        fi
+lock_for_suspend() {
+        i3lock -n -e -f -c "$lock_color" &
+        sleep 0.2
+        systemctl suspend
 }
 
 case "${1:-lock}" in
         lock|--nofork)
-                lock_with_image
+                lock_screen
                 ;;
         suspend)
-                if generate_image; then
-                        i3lock -n -e -f -i "$lock_image" &
-                else
-                        i3lock -n -e -f -c "$dark_color" &
-                fi
-                sleep 0.5
-                systemctl suspend
-                ;;
-        --image-only)
-                if generate_image; then
-                        printf '%s\n' "$lock_image"
-                else
-                        notify "Lock screen" "Could not generate lock image"
-                        exit 1
-                fi
+                lock_for_suspend
                 ;;
         *)
-                printf 'usage: %s [lock|--nofork|suspend|--image-only]\n' "$0" >&2
+                printf 'usage: %s [lock|--nofork|suspend]\n' "$0" >&2
                 exit 2
                 ;;
 esac

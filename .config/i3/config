@@ -114,6 +114,7 @@ bindsym $mod+Tab exec --no-startup-id ~/.local/bin/i3-app-launcher window
 bindsym $mod+c exec --no-startup-id ~/.local/bin/i3-clipboard-menu show
 bindsym $mod+Shift+v exec --no-startup-id ~/.local/bin/i3-clipboard-menu window
 bindsym $mod+Control+c exec --no-startup-id ~/.local/bin/i3-clipboard-menu menu
+bindsym $mod+Control+v exec --no-startup-id ~/.local/bin/i3-clipboard-menu paste
 
 # notification controls
 bindsym $mod+n exec --no-startup-id dunstctl close

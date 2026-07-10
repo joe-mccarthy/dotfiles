@@ -16,6 +16,7 @@ choose() {
         if command -v rofi >/dev/null 2>&1; then
                 printf '%s\n' "$options" | rofi -dmenu -i -p "$prompt" -theme "$theme"
         else
+                # shellcheck disable=SC2086
                 printf '%s\n' "$options" | dmenu $dmenu_style
         fi
 }
@@ -34,12 +35,18 @@ ensure_copyq() {
         fi
 
         if ! pgrep -u "$USER" -x copyq >/dev/null 2>&1; then
-                copyq >/dev/null 2>&1 &
+                if ! copyq --start-server config disable_tray true >/dev/null 2>&1; then
+                        copyq >/dev/null 2>&1 &
+                fi
         fi
 
         tries=0
         while [ "$tries" -lt 20 ]; do
                 if copyq -e "monitoring()" >/dev/null 2>&1; then
+                        copyq config disable_tray true >/dev/null 2>&1 || true
+                        copyq config hide_main_window true >/dev/null 2>&1 || true
+                        copyq config clipboard_notification_lines 0 >/dev/null 2>&1 || true
+                        copyq config item_popup_interval 0 >/dev/null 2>&1 || true
                         return 0
                 fi
 
@@ -62,39 +69,63 @@ copyq_script() {
 
 history_items() {
         if ! copyq eval -- '
-var total = size();
-for (var i = 0; i < total; ++i) {
-    var label = "";
+function clean(value) {
+    return str(value).replace(/[\t\r\n]+/g, " ").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+}
+
+function itemData(mime, row) {
     try {
-        label = str(read(mimeText, i));
+        return clean(read(mime, row));
     } catch (e) {
-        label = "";
+        return "";
+    }
+}
+
+function shorten(value, limit) {
+    if (value.length <= limit) {
+        return value;
     }
 
-    label = label.replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+    return value.substring(0, limit - 3) + "...";
+}
+
+var total = size();
+for (var i = 0; i < total; ++i) {
+    var label = itemData(mimeText, i);
+    var source = itemData(mimeWindowTitle, i);
+    var formats = "";
+    var kind = "[TXT]";
 
     if (!label) {
-        var formats = "";
         try {
             formats = str(read("?", i));
         } catch (e) {
             formats = "";
         }
 
-        if (formats.indexOf("image/") !== -1) {
+        if (formats.indexOf("text/uri-list") !== -1) {
+            kind = "[URI]";
+            label = itemData(mimeUriList, i).replace(/^file:\/\//, "");
+        } else if (formats.indexOf("image/") !== -1) {
+            kind = "[IMG]";
             label = "[image]";
-        } else if (formats.indexOf("text/uri-list") !== -1) {
-            label = "[file/link]";
+        } else if (formats.indexOf("text/html") !== -1) {
+            kind = "[HTML]";
+            label = clean(itemData(mimeHtml, i).replace(/<[^>]*>/g, " "));
         } else {
+            kind = "[DATA]";
             label = "[non-text item]";
         }
     }
 
-    if (label.length > 140) {
-        label = label.substring(0, 137) + "...";
+    label = shorten(label, source ? 110 : 140);
+    if (source) {
+        label += "  (" + shorten(source, 28) + ")";
     }
 
-    print(i + "\t" + label + "\n");
+    var number = i + 1;
+    var displayNumber = number < 10 ? "0" + number : "" + number;
+    print(i + "\t" + displayNumber + " " + kind + " " + label + "\n");
 }
 ' 2>/dev/null; then
                 notify "Clipboard" "Could not read CopyQ history"
@@ -102,28 +133,46 @@ for (var i = 0; i < total; ++i) {
         fi
 }
 
-history_menu() {
+pick_history() {
+        prompt="$1"
+
         ensure_copyq
         items=$(history_items)
 
         if [ -z "$items" ]; then
                 notify "Clipboard" "History is empty"
-                exit 0
+                return 1
         fi
 
-        selection=$(choose "clipboard" "$items")
-        [ -n "$selection" ] || exit 0
+        selection=$(choose "$prompt" "$items")
+        [ -n "$selection" ] || return 1
 
         row=$(printf '%s\n' "$selection" | awk -F '\t' '{ print $1 }')
         case "$row" in
                 ""|*[!0-9]*)
                         notify "Clipboard" "Could not parse selection"
-                        exit 1
+                        return 2
                         ;;
         esac
 
+        printf '%s\n' "$row"
+}
+
+copy_history() {
+        row=$(pick_history "clipboard") || exit 0
         copyq_script "select($row)"
-        notify "Clipboard" "Copied item $row"
+        notify "Clipboard" "Copied item $((row + 1))"
+}
+
+paste_history() {
+        row=$(pick_history "paste") || exit 0
+        copyq_script "select($row); paste()"
+}
+
+delete_history() {
+        row=$(pick_history "delete") || exit 0
+        copyq_script "remove($row)"
+        notify "Clipboard" "Deleted item $((row + 1))"
 }
 
 show_window() {
@@ -161,7 +210,9 @@ quit_copyq() {
 }
 
 manage_menu() {
-        selection=$(choose "clipboard" "Rofi History
+        selection=$(choose "clipboard" "Copy History
+Paste History
+Delete Item
 CopyQ Window
 CopyQ Item Menu
 Pause Capture
@@ -170,7 +221,9 @@ Clear History
 Quit CopyQ")
 
         case "$selection" in
-                "Rofi History") history_menu ;;
+                "Copy History") copy_history ;;
+                "Paste History") paste_history ;;
+                "Delete Item") delete_history ;;
                 "CopyQ Window") show_window ;;
                 "CopyQ Item Menu") show_items ;;
                 "Pause Capture") pause_capture ;;
@@ -186,7 +239,9 @@ Quit CopyQ")
 }
 
 case "${1:-show}" in
-        show|history|rofi|picker) history_menu ;;
+        show|history|rofi|picker|copy) copy_history ;;
+        paste) paste_history ;;
+        delete|remove) delete_history ;;
         window) show_window ;;
         items) show_items ;;
         pause) pause_capture ;;
@@ -195,7 +250,7 @@ case "${1:-show}" in
         quit) quit_copyq ;;
         menu|manage) manage_menu ;;
         *)
-                printf 'usage: %s [show|window|items|menu|pause|resume|clear|quit]\n' "$0" >&2
+                printf 'usage: %s [show|paste|delete|window|items|menu|pause|resume|clear|quit]\n' "$0" >&2
                 exit 2
                 ;;
 esac
