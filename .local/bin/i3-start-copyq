@@ -1,0 +1,36 @@
+#!/bin/sh
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2"
+        fi
+}
+
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}"
+log_file="$cache_dir/i3-copyq.log"
+copyq_bin=$(command -v copyq 2>/dev/null || true)
+
+if [ -z "$copyq_bin" ] && [ -x /usr/bin/copyq ]; then
+        copyq_bin="/usr/bin/copyq"
+fi
+
+mkdir -p "$cache_dir"
+printf 'Starting CopyQ with DISPLAY=%s PATH=%s\n' "${DISPLAY:-unset}" "${PATH:-unset}" >"$log_file"
+
+if [ -z "$copyq_bin" ]; then
+        printf 'copyq not found\n' >>"$log_file"
+        notify "Clipboard" "CopyQ is not installed"
+        exit 0
+fi
+
+printf 'Using %s\n' "$copyq_bin" >>"$log_file"
+
+if "$copyq_bin" count >/dev/null 2>&1; then
+        printf 'CopyQ server already reachable\n' >>"$log_file"
+        exit 0
+fi
+
+"$copyq_bin" --start-server >>"$log_file" 2>&1
+status=$?
+printf 'copyq --start-server exited %s\n' "$status" >>"$log_file"
+exit "$status"

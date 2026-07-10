@@ -16,6 +16,8 @@ cd ~/.dots
 stow -d ~/.dots -t ~ --restow .
 ```
 
+On a fresh GNOME install, `init.sh` also installs the i3 metapackage and Xorg session support first, so the login screen can offer an `i3` session.
+
 To only restow files without installing packages:
 
 ```sh
@@ -35,11 +37,15 @@ The i3 desktop config now lives in this repo:
 - `.config/i3/` for i3 config and wallpaper path
 - `.config/i3status/` for bar status config
 - `.config/dunst/` for notifications
-- `.config/rofi/` for the launcher theme
+- `.config/rofi/` for the launcher and utility menu theme
 - `.config/picom/` for compositor settings
 - `.local/bin/i3-*` and `.local/bin/i3status-wrapper` for helper scripts
 
-The current setup includes rofi launcher modes, dunst notifications, screenshots, power menu, lock screen polish, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network helpers, wallpaper startup, kitty terminal, and the customised i3bar/i3status display.
+The current setup includes rofi launcher modes, CopyQ clipboard history, dunst notifications, screenshots, power menu, lock screen polish, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network helpers, wallpaper startup, kitty terminal, and the customised i3bar/i3status display.
+
+After the first install from GNOME, log out, select `i3` from the login screen session chooser, then log back in.
+
+Clipboard history is handled by CopyQ with a rofi picker. Use `$mod+c` to search clipboard history and restore the selected item to the clipboard, `$mod+Shift+v` to open the full CopyQ window, and `$mod+Control+c` for clipboard actions such as pause, resume, clear, or quit.
 
 Monitor layouts are handled by `.local/bin/i3-monitor-layout`. Use `$mod+p` or the display key to open the layout menu. Startup runs the `auto` layout, which uses the laptop display by itself when undocked and makes the external display primary when one is connected. i3bar is pinned to the current primary output.
 
@@ -49,7 +55,7 @@ Keyboard layout switching is handled by `.local/bin/i3-keyboard-layout`. Use `$m
 
 ## Terminal Setup
 
-Kitty uses JetBrains Mono, a tinted wallpaper background, powerline tabs, and split-window keybindings. Bash picks up terminal tools from `.bash_aliases`, including Starship, fzf, zoxide, direnv, eza, bat, btop, duf, procs, neovim, lazygit, and git shortcuts when those commands are installed.
+Kitty uses JetBrains Mono, a tinted wallpaper background, powerline tabs, split-window keybindings, and terminal-friendly clipboard mappings. `Ctrl+c` copies selected text or interrupts when nothing is selected, and `Ctrl+v` pastes from the clipboard. Bash picks up terminal tools from `.bash_aliases`, including Starship, fzf, zoxide, direnv, eza, bat, btop, duf, procs, neovim, lazygit, and git shortcuts when those commands are installed.
 
 VS Code is installed through apt as the `code` package. `init.sh` configures the Microsoft apt repository automatically before installing packages.
 

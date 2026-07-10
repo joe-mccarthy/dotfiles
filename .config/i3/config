@@ -40,6 +40,9 @@ exec_always --no-startup-id ~/.local/bin/i3-wallpaper
 # Notifications.
 exec_always --no-startup-id dunst
 
+# Clipboard manager.
+exec_always --no-startup-id ~/.local/bin/i3-start-copyq
+
 # Compositor.
 exec_always --no-startup-id ~/.local/bin/i3-start-picom
 
@@ -106,6 +109,11 @@ bindsym XF86Bluetooth exec --no-startup-id ~/.local/bin/i3-bluetooth-menu
 bindsym $mod+d exec --no-startup-id ~/.local/bin/i3-app-launcher apps
 bindsym $mod+Shift+d exec --no-startup-id ~/.local/bin/i3-app-launcher run
 bindsym $mod+Tab exec --no-startup-id ~/.local/bin/i3-app-launcher window
+
+# clipboard manager
+bindsym $mod+c exec --no-startup-id ~/.local/bin/i3-clipboard-menu show
+bindsym $mod+Shift+v exec --no-startup-id ~/.local/bin/i3-clipboard-menu window
+bindsym $mod+Control+c exec --no-startup-id ~/.local/bin/i3-clipboard-menu menu
 
 # notification controls
 bindsym $mod+n exec --no-startup-id dunstctl close

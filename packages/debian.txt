@@ -9,13 +9,19 @@ curl
 gpg
 
 # i3 desktop
+i3
 i3-wm
 i3lock
 i3status
+xserver-xorg
+xinit
 dex
 dunst
 libnotify-bin
 rofi
+copyq
+copyq-plugins
+libxcb-cursor0
 picom
 feh
 maim

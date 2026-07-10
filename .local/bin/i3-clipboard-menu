@@ -1,0 +1,201 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 14 -p clipboard -fn monospace:size=12 -nb #1d2021 -nf #ebdbb2 -sb #8ec07c -sf #1d2021"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2"
+        fi
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -i -p "$prompt" -theme "$theme"
+        else
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+confirm() {
+        action="$1"
+        choice=$(choose "$action" "No
+Yes")
+        [ "$choice" = "Yes" ]
+}
+
+ensure_copyq() {
+        if ! command -v copyq >/dev/null 2>&1; then
+                notify "Clipboard" "CopyQ is not installed"
+                exit 1
+        fi
+
+        if ! pgrep -u "$USER" -x copyq >/dev/null 2>&1; then
+                copyq >/dev/null 2>&1 &
+        fi
+
+        tries=0
+        while [ "$tries" -lt 20 ]; do
+                if copyq -e "monitoring()" >/dev/null 2>&1; then
+                        return 0
+                fi
+
+                tries=$((tries + 1))
+                sleep 0.1
+        done
+
+        notify "Clipboard" "CopyQ is not ready"
+        exit 1
+}
+
+copyq_script() {
+        script="$1"
+
+        if ! copyq -e "$script" >/dev/null 2>&1; then
+                notify "Clipboard" "CopyQ command failed"
+                exit 1
+        fi
+}
+
+history_items() {
+        if ! copyq eval -- '
+var total = size();
+for (var i = 0; i < total; ++i) {
+    var label = "";
+    try {
+        label = str(read(mimeText, i));
+    } catch (e) {
+        label = "";
+    }
+
+    label = label.replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+
+    if (!label) {
+        var formats = "";
+        try {
+            formats = str(read("?", i));
+        } catch (e) {
+            formats = "";
+        }
+
+        if (formats.indexOf("image/") !== -1) {
+            label = "[image]";
+        } else if (formats.indexOf("text/uri-list") !== -1) {
+            label = "[file/link]";
+        } else {
+            label = "[non-text item]";
+        }
+    }
+
+    if (label.length > 140) {
+        label = label.substring(0, 137) + "...";
+    }
+
+    print(i + "\t" + label + "\n");
+}
+' 2>/dev/null; then
+                notify "Clipboard" "Could not read CopyQ history"
+                exit 1
+        fi
+}
+
+history_menu() {
+        ensure_copyq
+        items=$(history_items)
+
+        if [ -z "$items" ]; then
+                notify "Clipboard" "History is empty"
+                exit 0
+        fi
+
+        selection=$(choose "clipboard" "$items")
+        [ -n "$selection" ] || exit 0
+
+        row=$(printf '%s\n' "$selection" | awk -F '\t' '{ print $1 }')
+        case "$row" in
+                ""|*[!0-9]*)
+                        notify "Clipboard" "Could not parse selection"
+                        exit 1
+                        ;;
+        esac
+
+        copyq_script "select($row)"
+        notify "Clipboard" "Copied item $row"
+}
+
+show_window() {
+        ensure_copyq
+        copyq_script "toggle()"
+}
+
+show_items() {
+        ensure_copyq
+        copyq_script "menu()"
+}
+
+pause_capture() {
+        ensure_copyq
+        copyq_script "disable()"
+        notify "Clipboard" "Capture paused"
+}
+
+resume_capture() {
+        ensure_copyq
+        copyq_script "enable()"
+        notify "Clipboard" "Capture resumed"
+}
+
+clear_history() {
+        ensure_copyq
+        confirm "clear clipboard history" || exit 0
+        copyq_script "while (size() > 0) remove(0)"
+        notify "Clipboard" "History cleared"
+}
+
+quit_copyq() {
+        ensure_copyq
+        copyq_script "exit()"
+}
+
+manage_menu() {
+        selection=$(choose "clipboard" "Rofi History
+CopyQ Window
+CopyQ Item Menu
+Pause Capture
+Resume Capture
+Clear History
+Quit CopyQ")
+
+        case "$selection" in
+                "Rofi History") history_menu ;;
+                "CopyQ Window") show_window ;;
+                "CopyQ Item Menu") show_items ;;
+                "Pause Capture") pause_capture ;;
+                "Resume Capture") resume_capture ;;
+                "Clear History") clear_history ;;
+                "Quit CopyQ") quit_copyq ;;
+                "") exit 0 ;;
+                *)
+                        notify "Clipboard" "Unknown option: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+case "${1:-show}" in
+        show|history|rofi|picker) history_menu ;;
+        window) show_window ;;
+        items) show_items ;;
+        pause) pause_capture ;;
+        resume) resume_capture ;;
+        clear) clear_history ;;
+        quit) quit_copyq ;;
+        menu|manage) manage_menu ;;
+        *)
+                printf 'usage: %s [show|window|items|menu|pause|resume|clear|quit]\n' "$0" >&2
+                exit 2
+                ;;
+esac

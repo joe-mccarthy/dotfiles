@@ -24,6 +24,8 @@ Install packages and stow files. This also configures the Microsoft apt reposito
 ./init.sh
 ```
 
+On a GNOME machine, this installs i3, Xorg session support, and the rest of the desktop packages. After it finishes, log out, choose `i3` from the login screen session menu, and log back in.
+
 For a dry stow-only restore:
 
 ```sh

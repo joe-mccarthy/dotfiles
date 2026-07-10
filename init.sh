@@ -58,6 +58,29 @@ package_installed() {
   dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q 'install ok installed'
 }
 
+install_missing_packages() {
+  label="$1"
+  shift
+
+  missing=()
+
+  for package in "$@"; do
+    if ! package_installed "$package"; then
+      missing+=("$package")
+    fi
+  done
+
+  if [ "${#missing[@]}" -eq 0 ]; then
+    printf '%s packages are already installed.\n' "$label"
+    return
+  fi
+
+  printf 'Installing %s packages: %s\n' "$label" "${missing[*]}"
+
+  apt_update_once
+  run_as_root apt-get install -y "${missing[@]}"
+}
+
 print_system_info() {
   if [ -r /etc/os-release ]; then
     # shellcheck disable=SC1091
@@ -112,30 +135,26 @@ install_apt_dependencies() {
     return
   fi
 
+  ensure_i3_desktop
   ensure_microsoft_code_repo
 
   mapfile -t packages < <(read_packages)
-  missing=()
-
-  for package in "${packages[@]}"; do
-    if ! package_installed "$package"; then
-      missing+=("$package")
-    fi
-  done
-
-  if [ "${#missing[@]}" -eq 0 ]; then
-    printf 'All apt dependencies are already installed.\n'
-    return
-  fi
-
-  printf 'Installing apt dependencies: %s\n' "${missing[*]}"
-
-  apt_update_once
-  run_as_root apt-get install -y "${missing[@]}"
+  install_missing_packages "apt dependency" "${packages[@]}"
 }
 
 manifest_contains_package() {
   read_packages | grep -qx "$1"
+}
+
+ensure_i3_desktop() {
+  # A fresh GNOME install has a display manager already, but i3 still needs
+  # the i3 session package and Xorg session support for GDM's session chooser.
+  install_missing_packages "i3 desktop" i3 xserver-xorg xinit
+
+  if [ ! -e /usr/share/xsessions/i3.desktop ]; then
+    printf 'Warning: /usr/share/xsessions/i3.desktop was not found after installing i3.\n' >&2
+    printf 'You may need to reinstall the i3 package or check your display manager.\n' >&2
+  fi
 }
 
 ensure_microsoft_code_repo() {
@@ -154,8 +173,7 @@ ensure_microsoft_code_repo() {
 
   if [ "${#missing_prereqs[@]}" -gt 0 ]; then
     printf 'Installing Microsoft repo prerequisites: %s\n' "${missing_prereqs[*]}"
-    apt_update_once
-    run_as_root apt-get install -y "${missing_prereqs[@]}"
+    install_missing_packages "Microsoft repo prerequisite" "${missing_prereqs[@]}"
   fi
 
   repo_changed=0
