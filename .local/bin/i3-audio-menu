@@ -1,0 +1,215 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 10 -p audio -fn monospace:size=12 -nb #1d2021 -nf #ebdbb2 -sb #8ec07c -sf #1d2021"
+theme_env="$HOME/.config/i3/theme.env"
+
+if [ -r "$theme_env" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$theme_env"
+        set +a
+fi
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2"
+        fi
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -i -p "$prompt" -theme "$theme"
+        else
+                # shellcheck disable=SC2086
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+refresh_status() {
+        pkill -SIGUSR1 i3status 2>/dev/null || true
+}
+
+require_wpctl() {
+        if ! command -v wpctl >/dev/null 2>&1; then
+                notify "Audio" "wpctl is not installed"
+                exit 1
+        fi
+}
+
+audio_status() {
+        if ! status=$(wpctl status 2>&1); then
+                notify "Audio" "$status"
+                exit 1
+        fi
+
+        printf '%s\n' "$status"
+}
+
+list_nodes() {
+        section="$1"
+        in_section=0
+
+        audio_status | while IFS= read -r line; do
+                case "$line" in
+                        *"$section:"*)
+                                in_section=1
+                                continue
+                                ;;
+                esac
+
+                [ "$in_section" -eq 1 ] || continue
+
+                case "$line" in
+                        *"Devices:"*|*"Sinks:"*|*"Sources:"*|*"Filters:"*|*"Streams:"*|Video|Settings)
+                                break
+                                ;;
+                esac
+
+                entry=$(printf '%s\n' "$line" | sed 's/^[^0-9*]*//')
+                case "$entry" in
+                        ""|[!0-9*]*)
+                                continue
+                                ;;
+                esac
+
+                current=" "
+                case "$entry" in
+                        \**)
+                                current="*"
+                                entry=${entry#\*}
+                                ;;
+                esac
+
+                entry=$(printf '%s\n' "$entry" | awk '{$1=$1; print}')
+                case "$entry" in
+                        [0-9]*.\ *)
+                                id=${entry%%.*}
+                                name=${entry#*. }
+                                name=${name%% \[vol:*}
+                                printf '%s %s\t%s\n' "$current" "$id" "$name"
+                                ;;
+                esac
+        done
+}
+
+set_default_node() {
+        section="$1"
+        prompt="$2"
+        label="$3"
+
+        nodes=$(list_nodes "$section")
+        if [ -z "$nodes" ]; then
+                notify "Audio" "No $label devices found"
+                exit 1
+        fi
+
+        selection=$(choose "$prompt" "$nodes")
+        [ -n "$selection" ] || exit 0
+
+        id=$(printf '%s\n' "$selection" | awk -F '\t' '{ print $1 }' | tr -cd '0-9')
+        name=$(printf '%s\n' "$selection" | awk -F '\t' '{ print $2 }')
+
+        if [ -z "$id" ]; then
+                notify "Audio" "Could not parse selection"
+                exit 1
+        fi
+
+        if output=$(wpctl set-default "$id" 2>&1); then
+                refresh_status
+                notify "Audio" "Default $label: $name"
+        else
+                notify "Audio" "$output"
+                exit 1
+        fi
+}
+
+status_message() {
+        output=$(list_nodes "Sinks" | awk -F '\t' '$1 ~ /^\*/ { print $2; exit }')
+        input=$(list_nodes "Sources" | awk -F '\t' '$1 ~ /^\*/ { print $2; exit }')
+        volume=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null || printf 'Output volume unavailable')
+        mic=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null || printf 'Input volume unavailable')
+
+        message="Output: ${output:-unknown}
+$volume
+
+Input: ${input:-unknown}
+$mic"
+
+        printf '%s\n' "$message"
+        notify "Audio status" "$message"
+}
+
+open_mixer() {
+        if command -v pavucontrol >/dev/null 2>&1; then
+                pavucontrol >/dev/null 2>&1 &
+                exit 0
+        fi
+
+        notify "Audio" "pavucontrol is not installed"
+        exit 1
+}
+
+toggle_output() {
+        wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && refresh_status
+}
+
+toggle_input() {
+        wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle && refresh_status
+}
+
+volume_up() {
+        wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ && refresh_status
+}
+
+volume_down() {
+        wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && refresh_status
+}
+
+menu() {
+        selection=$(choose "audio" "Output Device
+Input Device
+Mute Output
+Mute Input
+Volume Up
+Volume Down
+Open Mixer
+Status")
+
+        case "$selection" in
+                "Output Device") set_default_node "Sinks" "output" "output" ;;
+                "Input Device") set_default_node "Sources" "input" "input" ;;
+                "Mute Output") toggle_output ;;
+                "Mute Input") toggle_input ;;
+                "Volume Up") volume_up ;;
+                "Volume Down") volume_down ;;
+                "Open Mixer") open_mixer ;;
+                Status) status_message ;;
+                "") exit 0 ;;
+                *)
+                        notify "Audio" "Unknown option: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+require_wpctl
+
+case "${1:-menu}" in
+        menu) menu ;;
+        output) set_default_node "Sinks" "output" "output" ;;
+        input) set_default_node "Sources" "input" "input" ;;
+        status) status_message ;;
+        mixer) open_mixer ;;
+        mute-output) toggle_output ;;
+        mute-input) toggle_input ;;
+        up) volume_up ;;
+        down) volume_down ;;
+        *)
+                printf 'usage: %s [menu|output|input|status|mixer|mute-output|mute-input|up|down]\n' "$0" >&2
+                exit 2
+                ;;
+esac

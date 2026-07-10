@@ -1,0 +1,55 @@
+#!/bin/sh
+
+theme_env="$HOME/.config/i3/theme.env"
+
+if [ -r "$theme_env" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$theme_env"
+        set +a
+fi
+
+gtk_theme_name="${GTK_THEME_NAME:-Adwaita-dark}"
+icon_theme_name="${GTK_ICON_THEME_NAME:-Adwaita}"
+font_name="${GTK_FONT_NAME:-JetBrains Mono 10}"
+monospace_font_name="${GTK_MONOSPACE_FONT_NAME:-JetBrains Mono 10}"
+cursor_theme_name="${GTK_CURSOR_THEME_NAME:-Adwaita}"
+cursor_theme_size="${GTK_CURSOR_THEME_SIZE:-24}"
+
+export GTK_THEME="${GTK_THEME:-Adwaita:dark}"
+export QT_STYLE_OVERRIDE="${QT_STYLE_OVERRIDE:-Adwaita-Dark}"
+export XCURSOR_THEME="${XCURSOR_THEME:-$cursor_theme_name}"
+export XCURSOR_SIZE="${XCURSOR_SIZE:-$cursor_theme_size}"
+export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-i3}"
+export DESKTOP_SESSION="${DESKTOP_SESSION:-i3}"
+
+if command -v gsettings >/dev/null 2>&1; then
+        gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme_name" >/dev/null 2>&1 || true
+        gsettings set org.gnome.desktop.interface icon-theme "$icon_theme_name" >/dev/null 2>&1 || true
+        gsettings set org.gnome.desktop.interface cursor-theme "$cursor_theme_name" >/dev/null 2>&1 || true
+        gsettings set org.gnome.desktop.interface cursor-size "$cursor_theme_size" >/dev/null 2>&1 || true
+        gsettings set org.gnome.desktop.interface font-name "$font_name" >/dev/null 2>&1 || true
+        gsettings set org.gnome.desktop.interface monospace-font-name "$monospace_font_name" >/dev/null 2>&1 || true
+        gsettings set org.gnome.desktop.interface color-scheme prefer-dark >/dev/null 2>&1 || true
+fi
+
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+        dbus-update-activation-environment --systemd \
+                XDG_CURRENT_DESKTOP DESKTOP_SESSION \
+                GTK_THEME QT_STYLE_OVERRIDE XCURSOR_THEME XCURSOR_SIZE >/dev/null 2>&1 || true
+fi
+
+if command -v xrdb >/dev/null 2>&1; then
+        printf '%s\n' \
+                "Xcursor.theme: $cursor_theme_name" \
+                "Xcursor.size: $cursor_theme_size" \
+                "Xft.antialias: 1" \
+                "Xft.hinting: 1" \
+                "Xft.hintstyle: hintslight" \
+                "Xft.rgba: rgb" | xrdb -merge >/dev/null 2>&1 || true
+fi
+
+if command -v xsettingsd >/dev/null 2>&1; then
+        pkill -x xsettingsd 2>/dev/null || true
+        xsettingsd -c "$HOME/.config/xsettingsd/xsettingsd.conf" >/dev/null 2>&1 &
+fi

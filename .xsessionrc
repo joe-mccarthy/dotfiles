@@ -1,0 +1,8 @@
+if [ -r "$HOME/.config/i3/theme.env" ]; then
+        set -a
+        . "$HOME/.config/i3/theme.env"
+        set +a
+fi
+
+export XDG_CURRENT_DESKTOP=i3
+export DESKTOP_SESSION=i3

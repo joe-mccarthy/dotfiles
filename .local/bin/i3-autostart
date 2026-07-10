@@ -1,0 +1,29 @@
+#!/bin/sh
+
+theme_env="$HOME/.config/i3/theme.env"
+
+if [ -r "$theme_env" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$theme_env"
+        set +a
+fi
+
+export XDG_CURRENT_DESKTOP=i3
+export DESKTOP_SESSION=i3
+
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+        dbus-update-activation-environment --systemd \
+                DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP DESKTOP_SESSION \
+                GTK_THEME QT_STYLE_OVERRIDE XCURSOR_THEME XCURSOR_SIZE >/dev/null 2>&1 || true
+fi
+
+if command -v gnome-keyring-daemon >/dev/null 2>&1; then
+        gnome-keyring-daemon --start --components=pkcs11,secrets,ssh >/dev/null 2>&1 || true
+fi
+
+"$HOME/.local/bin/i3-apply-theme"
+
+if command -v xdg-user-dirs-update >/dev/null 2>&1; then
+        xdg-user-dirs-update >/dev/null 2>&1 || true
+fi
