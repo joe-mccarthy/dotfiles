@@ -1,0 +1,64 @@
+# Core dotfile tooling
+git
+stow
+less
+jq
+xdg-utils
+
+# i3 desktop
+i3-wm
+i3lock
+i3status
+dex
+dunst
+libnotify-bin
+rofi
+picom
+feh
+maim
+xclip
+suckless-tools
+network-manager
+network-manager-gnome
+bluez
+blueman
+wireplumber
+x11-xkb-utils
+x11-xserver-utils
+xss-lock
+
+# Terminal and development
+kitty
+starship
+eza
+bat
+fzf
+fd-find
+ripgrep
+btop
+zoxide
+direnv
+tree
+ncdu
+duf
+hyperfine
+shellcheck
+shfmt
+lazygit
+git-delta
+glow
+procs
+neovim
+tmux
+fastfetch
+
+# Fonts and symbols
+fontconfig
+fonts-dejavu-core
+fonts-jetbrains-mono
+fonts-noto-color-emoji
+fonts-powerline
+
+# Optional secrets/backup tooling
+age
+pass

@@ -2,3 +2,11 @@
 .config/htop
 .config/lazygit
 .config/pulse/cookie
+.config/secrets/env
+.config/secrets/*.local
+.cache/
+.local/state/
+.vim/.netrwhist
+*.swp
+*.swo
+*.tmp

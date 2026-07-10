@@ -1,0 +1,221 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 10 -p network -fn monospace:size=12 -nb #1d2021 -nf #ebdbb2 -sb #8ec07c -sf #1d2021"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2"
+        fi
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -p "$prompt" -theme "$theme"
+        else
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+secret() {
+        prompt="$1"
+
+        if command -v rofi >/dev/null 2>&1; then
+                rofi -dmenu -password -p "$prompt" -theme "$theme"
+        else
+                dmenu -p "$prompt"
+        fi
+}
+
+refresh_status() {
+        pkill -SIGUSR1 i3status 2>/dev/null || true
+}
+
+run_nmcli() {
+        output=$(nmcli "$@" 2>&1)
+        status=$?
+        if [ "$status" -ne 0 ]; then
+                notify "Network" "$output"
+                return "$status"
+        fi
+
+        refresh_status
+        return 0
+}
+
+wifi_device() {
+        nmcli -t -f DEVICE,TYPE device status | awk -F: '$2 == "wifi" { print $1; exit }'
+}
+
+network_status() {
+        general=$(nmcli -t -f STATE,WIFI,WIFI-HW general | awk -F: '{ printf "State: %s\nWi-Fi: %s\nHardware: %s", $1, $2, $3 }')
+        devices=$(nmcli -f DEVICE,TYPE,STATE,CONNECTION device status | awk '$1 !~ /^veth/ && $2 !~ /bridge|loopback|wifi-p2p/ { print }')
+        active_wifi=$(nmcli -f ACTIVE,SSID,SIGNAL,SECURITY device wifi list | awk '$1 == "yes" { $1=""; sub(/^ /, ""); print; exit }')
+
+        message="$general"
+        [ -n "$active_wifi" ] && message="$message
+Active Wi-Fi: $active_wifi"
+        [ -n "$devices" ] && message="$message
+
+$devices"
+
+        printf '%s\n' "$message"
+        notify "Network status" "$message"
+}
+
+wifi_on() {
+        run_nmcli radio wifi on && notify "Network" "Wi-Fi enabled"
+}
+
+wifi_off() {
+        run_nmcli radio wifi off && notify "Network" "Wi-Fi disabled"
+}
+
+disconnect_wifi() {
+        device=$(wifi_device)
+        if [ -z "$device" ]; then
+                notify "Network" "No Wi-Fi device found"
+                exit 1
+        fi
+
+        run_nmcli device disconnect "$device" && notify "Network" "Disconnected $device"
+}
+
+connect_saved() {
+        connections=$(nmcli -t -f NAME,TYPE connection show | awk -F: '$2 == "802-11-wireless" { print $1 }')
+        if [ -z "$connections" ]; then
+                notify "Network" "No saved Wi-Fi connections"
+                exit 1
+        fi
+
+        selection=$(choose "saved wifi" "$connections")
+        [ -n "$selection" ] || exit 0
+
+        run_nmcli connection up id "$selection" && notify "Network" "Connected to $selection"
+}
+
+connect_wifi() {
+        run_nmcli radio wifi on || exit 1
+        nmcli device wifi rescan >/dev/null 2>&1 || true
+
+        networks=$(nmcli -t -f SSID,SIGNAL,SECURITY device wifi list | awk -F: '
+                $1 != "" {
+                        security = $3
+                        if (security == "" || security == "--") {
+                                security = "open"
+                        }
+                        line = $1 "\t" $2 "%\t" security
+                        if (!seen[line]++) {
+                                print line
+                        }
+                }
+        ')
+
+        if [ -z "$networks" ]; then
+                notify "Network" "No Wi-Fi networks found"
+                exit 1
+        fi
+
+        selection=$(choose "wifi" "$networks")
+        [ -n "$selection" ] || exit 0
+
+        ssid=$(printf '%s\n' "$selection" | awk -F '\t' '{ print $1 }')
+        security=$(printf '%s\n' "$selection" | awk -F '\t' '{ print $3 }')
+
+        if [ "$security" = "open" ]; then
+                run_nmcli device wifi connect "$ssid" && notify "Network" "Connected to $ssid"
+                exit $?
+        fi
+
+        password=$(secret "password")
+        [ -n "$password" ] || exit 0
+
+        run_nmcli device wifi connect "$ssid" password "$password" && notify "Network" "Connected to $ssid"
+}
+
+open_editor() {
+        if command -v nm-connection-editor >/dev/null 2>&1; then
+                nm-connection-editor >/dev/null 2>&1 &
+                exit 0
+        fi
+
+        notify "Network" "nm-connection-editor is not installed"
+        exit 1
+}
+
+toggle_networking() {
+        state=$(nmcli -t -f STATE general)
+        case "$state" in
+                connected|connecting)
+                        run_nmcli networking off && notify "Network" "Networking disabled"
+                        ;;
+                *)
+                        run_nmcli networking on && notify "Network" "Networking enabled"
+                        ;;
+        esac
+}
+
+menu() {
+        wifi=$(nmcli -t -f WIFI general)
+        state=$(nmcli -t -f STATE general)
+
+        if [ "$wifi" = "enabled" ]; then
+                wifi_toggle="Wi-Fi off"
+        else
+                wifi_toggle="Wi-Fi on"
+        fi
+
+        if [ "$state" = "connected" ] || [ "$state" = "connecting" ]; then
+                network_toggle="Networking off"
+        else
+                network_toggle="Networking on"
+        fi
+
+        selection=$(choose "network" "Status
+Connect Wi-Fi
+Saved Wi-Fi
+Disconnect Wi-Fi
+$wifi_toggle
+Network editor
+$network_toggle")
+
+        case "$selection" in
+                Status) network_status ;;
+                "Connect Wi-Fi") connect_wifi ;;
+                "Saved Wi-Fi") connect_saved ;;
+                "Disconnect Wi-Fi") disconnect_wifi ;;
+                "Wi-Fi on") wifi_on ;;
+                "Wi-Fi off") wifi_off ;;
+                "Network editor") open_editor ;;
+                "Networking on"|"Networking off") toggle_networking ;;
+                "") exit 0 ;;
+                *)
+                        notify "Network" "Unknown option: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+if ! command -v nmcli >/dev/null 2>&1; then
+        notify "Network" "nmcli is not installed"
+        exit 1
+fi
+
+case "${1:-menu}" in
+        status) network_status ;;
+        connect) connect_wifi ;;
+        saved) connect_saved ;;
+        disconnect) disconnect_wifi ;;
+        wifi-on) wifi_on ;;
+        wifi-off) wifi_off ;;
+        editor) open_editor ;;
+        toggle) toggle_networking ;;
+        menu) menu ;;
+        *)
+                printf 'usage: %s [menu|status|connect|saved|disconnect|wifi-on|wifi-off|editor|toggle]\n' "$0" >&2
+                exit 2
+                ;;
+esac

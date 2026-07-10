@@ -1,0 +1,167 @@
+#!/bin/sh
+
+config="${XDG_CONFIG_HOME:-$HOME/.config}/i3/keyboard-layout"
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 6 -p keyboard -fn monospace:size=12 -nb #1d2021 -nf #ebdbb2 -sb #8ec07c -sf #1d2021"
+quiet=0
+
+case "${2:-}" in
+        --quiet|quiet) quiet=1 ;;
+esac
+
+notify() {
+        [ "$quiet" -eq 1 ] && return
+
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2"
+        fi
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -p "$prompt" -theme "$theme"
+        else
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+current_layout() {
+        setxkbmap -query | awk -F: '
+                $1 ~ /layout/ { gsub(/[[:space:]]/, "", $2); layout = $2 }
+                $1 ~ /variant/ { gsub(/[[:space:]]/, "", $2); variant = $2 }
+                END {
+                        if (variant != "") {
+                                print layout " (" variant ")"
+                        } else {
+                                print layout
+                        }
+                }
+        '
+}
+
+write_config() {
+        layout="$1"
+        variant="$2"
+        label="$3"
+
+        mkdir -p "$(dirname "$config")"
+        {
+                printf 'layout=%s\n' "$layout"
+                printf 'variant=%s\n' "$variant"
+                printf 'label=%s\n' "$label"
+        } > "$config"
+}
+
+read_saved_config() {
+        key="$1"
+
+        awk -F= -v key="$key" '$1 == key {
+                sub(/^[^=]*=/, "")
+                print
+                exit
+        }' "$config" 2>/dev/null
+}
+
+sync_ibus() {
+        layout="$1"
+
+        command -v ibus >/dev/null 2>&1 || return
+
+        case "$layout" in
+                gb) ibus engine xkb:gb::eng >/dev/null 2>&1 || true ;;
+                us) ibus engine xkb:us::eng >/dev/null 2>&1 || true ;;
+        esac
+}
+
+set_layout() {
+        layout="$1"
+        variant="$2"
+        label="$3"
+        persist="${4:-yes}"
+
+        if [ -n "$variant" ]; then
+                setxkbmap -model pc105 -layout "$layout" -variant "$variant"
+        else
+                setxkbmap -model pc105 -layout "$layout"
+        fi
+
+        sync_ibus "$layout"
+
+        if [ "$persist" = "yes" ]; then
+                write_config "$layout" "$variant" "$label"
+        fi
+
+        notify "Keyboard layout" "$label"
+}
+
+apply_saved() {
+        layout="gb"
+        variant=""
+        label="UK English (laptop)"
+
+        if [ -r "$config" ]; then
+                saved_layout=$(read_saved_config layout)
+                saved_variant=$(read_saved_config variant)
+                saved_label=$(read_saved_config label)
+
+                [ -n "$saved_layout" ] && layout="$saved_layout"
+                variant="$saved_variant"
+                [ -n "$saved_label" ] && label="$saved_label"
+        fi
+
+        set_layout "$layout" "$variant" "$label" no
+}
+
+status() {
+        saved="not set"
+        if [ -r "$config" ]; then
+                saved_label=$(read_saved_config label)
+                [ -n "$saved_label" ] && saved="$saved_label"
+        fi
+
+        message="Current: $(current_layout)
+Saved: $saved"
+
+        printf '%s\n' "$message"
+        notify "Keyboard layout" "$message"
+}
+
+menu() {
+        selection=$(choose "keyboard" "UK English (laptop)
+US English (external)
+Status")
+
+        case "$selection" in
+                "UK English (laptop)")
+                        set_layout gb "" "$selection"
+                        ;;
+                "US English (external)")
+                        set_layout us "" "$selection"
+                        ;;
+                Status)
+                        status
+                        ;;
+                "")
+                        exit 0
+                        ;;
+                *)
+                        notify "Keyboard layout" "Unknown option: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+case "${1:-menu}" in
+        apply) apply_saved ;;
+        status) status ;;
+        gb|uk|laptop) set_layout gb "" "UK English (laptop)" ;;
+        us|external) set_layout us "" "US English (external)" ;;
+        menu) menu ;;
+        *)
+                printf 'usage: %s [menu|apply|status|gb|us]\n' "$0" >&2
+                exit 2
+                ;;
+esac

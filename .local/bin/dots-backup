@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo="${DOTS_DIR:-$HOME/.dots}"
+
+usage() {
+  cat <<USAGE
+usage: $(basename "$0") [status|check|commit|push|sync] [message]
+
+Commands:
+  status           Show git status
+  check            Run safety checks before committing
+  commit MESSAGE   Stage all changes and commit
+  push             Push current branch
+  sync MESSAGE     Check, commit if needed, then push
+USAGE
+}
+
+cd "$repo"
+
+has_changes() {
+  [ -n "$(git status --short)" ]
+}
+
+scan_for_secrets() {
+  matches=$(
+    rg -l --hidden \
+      --glob '!.git' \
+      --glob '!secrets/env.example' \
+      --glob '!.local/bin/dots-backup' \
+      --glob '!RESTORE.md' \
+      --glob '!README.md' \
+      --regexp 'ghp_[A-Za-z0-9_]{20,}' \
+      --regexp 'dckr_pat_[A-Za-z0-9_-]+' \
+      --regexp 'GITHUB_TOKEN=' \
+      --regexp 'DOCKER=' \
+      . || true
+  )
+
+  if [ -n "$matches" ]; then
+    printf 'Potential secrets found. Refusing to continue.\n' >&2
+    printf '%s\n' "$matches" >&2
+    return 1
+  fi
+}
+
+check_repo() {
+  git diff --check
+  scan_for_secrets
+}
+
+commit_changes() {
+  message="${1:-}"
+
+  if [ -z "$message" ]; then
+    printf 'Commit message required.\n' >&2
+    exit 2
+  fi
+
+  check_repo
+
+  if ! has_changes; then
+    printf 'No changes to commit.\n'
+    return
+  fi
+
+  git add -A
+  git commit -m "$message"
+}
+
+push_changes() {
+  if ! git remote get-url origin >/dev/null 2>&1; then
+    printf 'No origin remote configured.\n' >&2
+    exit 1
+  fi
+
+  git push
+}
+
+case "${1:-status}" in
+  status)
+    git status --short --branch
+    ;;
+  check)
+    check_repo
+    git status --short --branch
+    ;;
+  commit)
+    shift || true
+    commit_changes "${*:-}"
+    ;;
+  push)
+    push_changes
+    ;;
+  sync)
+    shift || true
+    commit_changes "${*:-Update dotfiles}"
+    push_changes
+    ;;
+  -h|--help)
+    usage
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac

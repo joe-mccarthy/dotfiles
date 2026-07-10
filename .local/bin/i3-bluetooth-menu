@@ -1,0 +1,199 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 10 -p bluetooth -fn monospace:size=12 -nb #1d2021 -nf #ebdbb2 -sb #8ec07c -sf #1d2021"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2"
+        fi
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -p "$prompt" -theme "$theme"
+        else
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+run_bluetoothctl() {
+        output=$(bluetoothctl "$@" 2>&1)
+        status=$?
+        if [ "$status" -ne 0 ]; then
+                notify "Bluetooth" "$output"
+                return "$status"
+        fi
+
+        [ -n "$output" ] && printf '%s\n' "$output"
+        return 0
+}
+
+powered() {
+        bluetoothctl show 2>/dev/null | awk -F': ' '$1 ~ /Powered/ { print $2; exit }'
+}
+
+controller_status() {
+        show=$(bluetoothctl show 2>&1)
+        paired=$(bluetoothctl devices Paired 2>/dev/null | sed 's/^Device [^ ]* //')
+
+        message=$(printf '%s\n' "$show" | awk -F': ' '
+                $1 ~ /Name$/ { print "Name: " $2 }
+                $1 ~ /Powered$/ { print "Powered: " $2 }
+                $1 ~ /Discoverable$/ { print "Discoverable: " $2 }
+                $1 ~ /Pairable$/ { print "Pairable: " $2 }
+                $1 ~ /Discovering$/ { print "Discovering: " $2 }
+        ')
+
+        if [ -n "$paired" ]; then
+                message="$message
+
+Paired:
+$paired"
+        fi
+
+        printf '%s\n' "$message"
+        notify "Bluetooth status" "$message"
+}
+
+device_lines() {
+        bluetoothctl devices "$@" 2>/dev/null | sed 's/^Device //'
+}
+
+pick_device() {
+        prompt="$1"
+        shift
+
+        devices=$(device_lines "$@")
+        if [ -z "$devices" ]; then
+                notify "Bluetooth" "No devices found"
+                return 1
+        fi
+
+        selection=$(choose "$prompt" "$devices")
+        [ -n "$selection" ] || return 1
+
+        printf '%s\n' "$selection" | awk '{ print $1 }'
+}
+
+power_on() {
+        run_bluetoothctl power on >/dev/null && notify "Bluetooth" "Powered on"
+}
+
+power_off() {
+        run_bluetoothctl power off >/dev/null && notify "Bluetooth" "Powered off"
+}
+
+pairable_on() {
+        run_bluetoothctl pairable on >/dev/null
+        run_bluetoothctl discoverable on >/dev/null
+        notify "Bluetooth" "Pairable and discoverable"
+}
+
+connect_paired() {
+        mac=$(pick_device "paired" Paired) || exit 0
+        run_bluetoothctl connect "$mac" >/dev/null && notify "Bluetooth" "Connected $mac"
+}
+
+disconnect_device() {
+        mac=$(pick_device "disconnect") || exit 0
+        run_bluetoothctl disconnect "$mac" >/dev/null && notify "Bluetooth" "Disconnected $mac"
+}
+
+scan_devices() {
+        power_on
+        notify "Bluetooth" "Scanning for 10 seconds"
+        timeout 10s bluetoothctl scan on >/dev/null 2>&1 || true
+        devices=$(device_lines)
+
+        if [ -z "$devices" ]; then
+                notify "Bluetooth" "No devices found"
+                exit 1
+        fi
+
+        printf '%s\n' "$devices"
+        notify "Bluetooth devices" "$(printf '%s\n' "$devices" | sed 's/^[^ ]* //')"
+}
+
+pair_scanned() {
+        power_on
+        run_bluetoothctl agent on >/dev/null 2>&1 || true
+        run_bluetoothctl default-agent >/dev/null 2>&1 || true
+
+        notify "Bluetooth" "Scanning for 10 seconds"
+        timeout 10s bluetoothctl scan on >/dev/null 2>&1 || true
+
+        mac=$(pick_device "pair") || exit 0
+        run_bluetoothctl pair "$mac" >/dev/null 2>&1 || true
+        run_bluetoothctl trust "$mac" >/dev/null 2>&1 || true
+        run_bluetoothctl connect "$mac" >/dev/null && notify "Bluetooth" "Connected $mac"
+}
+
+open_manager() {
+        if command -v blueman-manager >/dev/null 2>&1; then
+                blueman-manager >/dev/null 2>&1 &
+                exit 0
+        fi
+
+        notify "Bluetooth" "blueman-manager is not installed"
+        exit 1
+}
+
+menu() {
+        if [ "$(powered)" = "yes" ]; then
+                power_toggle="Power off"
+        else
+                power_toggle="Power on"
+        fi
+
+        selection=$(choose "bluetooth" "Status
+$power_toggle
+Connect paired
+Disconnect device
+Scan
+Pair scanned
+Pairable on
+Open manager")
+
+        case "$selection" in
+                Status) controller_status ;;
+                "Power on") power_on ;;
+                "Power off") power_off ;;
+                "Connect paired") connect_paired ;;
+                "Disconnect device") disconnect_device ;;
+                Scan) scan_devices ;;
+                "Pair scanned") pair_scanned ;;
+                "Pairable on") pairable_on ;;
+                "Open manager") open_manager ;;
+                "") exit 0 ;;
+                *)
+                        notify "Bluetooth" "Unknown option: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+if ! command -v bluetoothctl >/dev/null 2>&1; then
+        notify "Bluetooth" "bluetoothctl is not installed"
+        exit 1
+fi
+
+case "${1:-menu}" in
+        status) controller_status ;;
+        power-on) power_on ;;
+        power-off) power_off ;;
+        connect) connect_paired ;;
+        disconnect) disconnect_device ;;
+        scan) scan_devices ;;
+        pair) pair_scanned ;;
+        pairable-on) pairable_on ;;
+        manager) open_manager ;;
+        menu) menu ;;
+        *)
+                printf 'usage: %s [menu|status|power-on|power-off|connect|disconnect|scan|pair|pairable-on|manager]\n' "$0" >&2
+                exit 2
+                ;;
+esac

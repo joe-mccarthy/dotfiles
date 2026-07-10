@@ -28,8 +28,8 @@ for_window [all] title_window_icon padding 6
 # https://wiki.archlinux.org/index.php/XDG_Autostart
 exec --no-startup-id dex --autostart --environment i3
 
-# Use UK English keyboard layout.
-exec_always --no-startup-id setxkbmap -model pc105 -layout gb
+# Keyboard layout. Use the menu to switch between laptop and external layouts.
+exec_always --no-startup-id ~/.local/bin/i3-keyboard-layout apply --quiet
 
 # Monitor layout. Auto docks to an external display when one is connected.
 exec_always --no-startup-id ~/.local/bin/i3-monitor-layout auto --quiet
@@ -80,7 +80,7 @@ gaps outer 4px
 smart_gaps off
 
 # start a terminal
-bindsym $mod+Return exec --no-startup-id kitty
+bindsym $mod+Return exec --no-startup-id ~/.local/bin/kitty
 
 # kill focused window
 bindsym $mod+Shift+q kill
@@ -91,6 +91,16 @@ bindsym $mod+Shift+x exec --no-startup-id ~/.local/bin/i3-lock-screen
 # monitor layout menu
 bindsym $mod+p exec --no-startup-id ~/.local/bin/i3-monitor-layout menu
 bindsym XF86Display exec --no-startup-id ~/.local/bin/i3-monitor-layout menu
+
+# keyboard layout menu
+bindsym $mod+Shift+i exec --no-startup-id ~/.local/bin/i3-keyboard-layout menu
+bindsym XF86Keyboard exec --no-startup-id ~/.local/bin/i3-keyboard-layout menu
+
+# network and bluetooth menus
+bindsym $mod+Shift+w exec --no-startup-id ~/.local/bin/i3-network-menu
+bindsym XF86WLAN exec --no-startup-id ~/.local/bin/i3-network-menu
+bindsym $mod+Shift+b exec --no-startup-id ~/.local/bin/i3-bluetooth-menu
+bindsym XF86Bluetooth exec --no-startup-id ~/.local/bin/i3-bluetooth-menu
 
 # start an application launcher
 bindsym $mod+d exec --no-startup-id ~/.local/bin/i3-app-launcher apps
@@ -242,6 +252,7 @@ bindsym $mod+r mode "resize"
 bar {
         status_command ~/.local/bin/i3status-wrapper
         position top
+        output primary
         font pango:monospace 12
         height 32
         tray_padding 4
