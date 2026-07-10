@@ -51,6 +51,8 @@ Keyboard layout switching is handled by `.local/bin/i3-keyboard-layout`. Use `$m
 
 Kitty uses JetBrains Mono, a tinted wallpaper background, powerline tabs, and split-window keybindings. Bash picks up terminal tools from `.bash_aliases`, including Starship, fzf, zoxide, direnv, eza, bat, btop, duf, procs, neovim, lazygit, and git shortcuts when those commands are installed.
 
+VS Code is installed through apt as the `code` package. `init.sh` configures the Microsoft apt repository automatically before installing packages.
+
 Install the terminal toolchain manually with:
 
 ```sh

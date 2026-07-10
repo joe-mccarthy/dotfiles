@@ -4,6 +4,9 @@ stow
 less
 jq
 xdg-utils
+ca-certificates
+curl
+gpg
 
 # i3 desktop
 i3-wm
@@ -28,6 +31,7 @@ x11-xserver-utils
 xss-lock
 
 # Terminal and development
+code
 kitty
 starship
 eza

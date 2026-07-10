@@ -18,7 +18,7 @@ git clone git@github.com:joe-mccarthy/dotfiles.git ~/.dots
 cd ~/.dots
 ```
 
-Install packages and stow files:
+Install packages and stow files. This also configures the Microsoft apt repository before installing VS Code:
 
 ```sh
 ./init.sh
