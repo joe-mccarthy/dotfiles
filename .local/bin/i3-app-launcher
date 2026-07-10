@@ -1,6 +1,15 @@
 #!/bin/sh
 
-font="monospace:size=12"
+theme_env="$HOME/.config/i3/theme.env"
+
+if [ -r "$theme_env" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$theme_env"
+        set +a
+fi
+
+font="JetBrains Mono:size=12"
 background="#1d2021"
 foreground="#ebdbb2"
 selected_background="#8ec07c"

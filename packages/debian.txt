@@ -32,9 +32,15 @@ network-manager-gnome
 bluez
 blueman
 wireplumber
+pipewire-pulse
+pavucontrol
 x11-xkb-utils
 x11-xserver-utils
 xss-lock
+xsettingsd
+gnome-themes-extra
+adwaita-qt
+adwaita-qt6
 
 # Terminal and development
 code
@@ -65,6 +71,7 @@ fastfetch
 # Fonts and symbols
 fontconfig
 fonts-dejavu-core
+fonts-cantarell
 fonts-jetbrains-mono
 fonts-noto-color-emoji
 fonts-powerline

@@ -41,7 +41,7 @@ The i3 desktop config now lives in this repo:
 - `.config/picom/` for compositor settings
 - `.local/bin/i3-*` and `.local/bin/i3status-wrapper` for helper scripts
 
-The current setup includes rofi launcher modes, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network helpers, wallpaper startup, kitty terminal, and the customised i3bar/i3status display.
+The current setup includes curated i3 autostart, rofi launcher modes, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3status display.
 
 After the first install from GNOME, log out, select `i3` from the login screen session chooser, then log back in.
 
@@ -50,6 +50,12 @@ Clipboard history is handled by CopyQ with a rofi picker and no tray icon. Use `
 Monitor layouts are handled by `.local/bin/i3-monitor-layout`. Use `$mod+p` or the display key to open the layout menu. Startup runs the `auto` layout, which uses the laptop display by itself when undocked and makes the external display primary when one is connected. i3bar is pinned to the current primary output.
 
 Network and Bluetooth helpers are handled by `.local/bin/i3-network-menu` and `.local/bin/i3-bluetooth-menu`. Use `$mod+Shift+w` for network actions and `$mod+Shift+b` for Bluetooth actions.
+
+Audio devices are handled by `.local/bin/i3-audio-menu`. Use `$mod+Shift+a` to switch output/input devices, mute, adjust volume, open `pavucontrol`, or show current audio status.
+
+Startup is intentionally curated by `.local/bin/i3-autostart` instead of running every GNOME autostart entry. It applies GTK/Qt theme environment, starts XSettings, and updates user dirs. Network and Bluetooth are controlled through the rofi helpers, so no network or Bluetooth tray icons are started.
+
+GTK and Qt app styling uses Adwaita dark settings and JetBrains Mono in `.config/gtk-3.0/`, `.config/gtk-4.0/`, `.gtkrc-2.0`, `.config/xsettingsd/`, `.config/i3/theme.env`, and `.xsessionrc`. Rofi and kitty keep their custom styling.
 
 Keyboard layout switching is handled by `.local/bin/i3-keyboard-layout`. Use `$mod+Shift+i` to switch between the UK laptop layout and US external keyboard layout. The selected layout is saved in `.config/i3/keyboard-layout` and reapplied on i3 reload.
 
