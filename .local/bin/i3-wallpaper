@@ -1,0 +1,25 @@
+#!/bin/sh
+
+config="${XDG_CONFIG_HOME:-$HOME/.config}/i3/wallpaper"
+default="$HOME/.config/wallpapers/ghibli-background-1.png"
+
+wallpaper="${1:-}"
+if [ -z "$wallpaper" ] && [ -r "$config" ]; then
+    wallpaper="$(sed -n '1{s/[[:space:]]*$//;p;q;}' "$config")"
+fi
+
+[ -n "$wallpaper" ] || wallpaper="$default"
+
+case "$wallpaper" in
+    "~/"*) wallpaper="$HOME/${wallpaper#"~/"}" ;;
+esac
+
+if [ -r "$wallpaper" ] && command -v feh >/dev/null 2>&1; then
+    exec feh --no-fehbg --bg-fill "$wallpaper"
+fi
+
+if command -v xsetroot >/dev/null 2>&1; then
+    exec xsetroot -solid "#1d2021"
+fi
+
+exit 1

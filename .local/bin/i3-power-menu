@@ -1,0 +1,63 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 6 -p power -fn monospace:size=12 -nb #1d2021 -nf #ebdbb2 -sb #8ec07c -sf #1d2021"
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -p "$prompt" -theme "$theme"
+        else
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+confirm() {
+        action="$1"
+        choice=$(choose "confirm $action" "No
+Yes")
+        [ "$choice" = "Yes" ]
+}
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2"
+        fi
+}
+
+lock_screen() {
+        "$HOME/.local/bin/i3-lock-screen"
+}
+
+selection=$(choose "power" "Lock
+Suspend
+Logout
+Reboot
+Shutdown")
+
+case "$selection" in
+        Lock)
+                lock_screen
+                ;;
+        Suspend)
+                "$HOME/.local/bin/i3-lock-screen" suspend
+                ;;
+        Logout)
+                confirm "logout" && i3-msg exit
+                ;;
+        Reboot)
+                confirm "reboot" && systemctl reboot
+                ;;
+        Shutdown)
+                confirm "shutdown" && systemctl poweroff
+                ;;
+        "")
+                exit 0
+                ;;
+        *)
+                notify "Power menu" "Unknown action: $selection"
+                exit 1
+                ;;
+esac

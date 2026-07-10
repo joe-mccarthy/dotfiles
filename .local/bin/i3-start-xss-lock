@@ -1,0 +1,4 @@
+#!/bin/sh
+
+pkill -x xss-lock 2>/dev/null || true
+exec xss-lock --transfer-sleep-lock -- "$HOME/.local/bin/i3-lock-screen" --nofork

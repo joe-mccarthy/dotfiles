@@ -1,0 +1,117 @@
+configuration {
+        modi: "drun,run,window";
+        show-icons: true;
+        drun-display-format: "{name}";
+        display-drun: "apps";
+        display-run: "run";
+        display-window: "windows";
+        font: "monospace 12";
+        matching: "fuzzy";
+        sort: true;
+        sidebar-mode: false;
+        location: 0;
+}
+
+* {
+        bg: #1d2021;
+        panel: #282828;
+        panel-alt: #3c3836;
+        fg: #ebdbb2;
+        muted: #a89984;
+        accent: #8ec07c;
+        urgent: #fb4934;
+        border: #504945;
+
+        background-color: transparent;
+        text-color: @fg;
+}
+
+window {
+        width: 44%;
+        location: center;
+        anchor: center;
+        background-color: @bg;
+        border: 2px;
+        border-color: @accent;
+        border-radius: 8px;
+        padding: 16px;
+}
+
+mainbox {
+        spacing: 12px;
+}
+
+inputbar {
+        children: [ prompt, entry ];
+        background-color: @panel;
+        border: 1px;
+        border-color: @border;
+        border-radius: 6px;
+        padding: 10px 12px;
+        spacing: 10px;
+}
+
+prompt {
+        text-color: @accent;
+}
+
+entry {
+        placeholder: "Search";
+        placeholder-color: @muted;
+}
+
+listview {
+        lines: 10;
+        columns: 1;
+        fixed-height: false;
+        scrollbar: false;
+        spacing: 4px;
+}
+
+element {
+        background-color: transparent;
+        border-radius: 5px;
+        padding: 8px 10px;
+        spacing: 10px;
+}
+
+element normal.normal {
+        text-color: @fg;
+}
+
+element alternate.normal {
+        background-color: @panel;
+        text-color: @fg;
+}
+
+element selected.normal {
+        background-color: @accent;
+        text-color: @bg;
+}
+
+element urgent.normal {
+        text-color: @urgent;
+}
+
+element selected.urgent {
+        background-color: @urgent;
+        text-color: @bg;
+}
+
+element-icon {
+        size: 24px;
+}
+
+element-text {
+        text-color: inherit;
+}
+
+message {
+        background-color: @panel;
+        border-radius: 6px;
+        padding: 10px;
+}
+
+textbox {
+        text-color: @muted;
+}

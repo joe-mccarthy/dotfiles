@@ -1,0 +1,267 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 6 -p monitor -fn monospace:size=12 -nb #1d2021 -nf #ebdbb2 -sb #8ec07c -sf #1d2021"
+quiet=0
+
+case "${2:-}" in
+        --quiet|quiet) quiet=1 ;;
+esac
+
+notify() {
+        [ "$quiet" -eq 1 ] && return
+
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2"
+        fi
+}
+
+all_outputs() {
+        xrandr --query | awk '$2 == "connected" || $2 == "disconnected" { print $1 }'
+}
+
+connected_outputs() {
+        xrandr --query | awk '$2 == "connected" { print $1 }'
+}
+
+internal_output() {
+        xrandr --query | awk '$2 == "connected" && $1 ~ /^(eDP|LVDS|DSI)/ { print $1; exit }'
+}
+
+first_external() {
+        xrandr --query | awk '$2 == "connected" && $1 !~ /^(eDP|LVDS|DSI)/ { print $1; exit }'
+}
+
+first_connected() {
+        xrandr --query | awk '$2 == "connected" { print $1; exit }'
+}
+
+modes_for() {
+        output="$1"
+        xrandr --query | awk -v output="$output" '
+                $1 == output { active = 1; next }
+                /^[^[:space:]]/ { active = 0 }
+                active && $1 ~ /^[0-9]+x[0-9]+$/ { print $1 }
+        '
+}
+
+common_mode() {
+        left="$1"
+        right="$2"
+        left_modes=$(mktemp)
+        right_modes=$(mktemp)
+
+        modes_for "$left" | sort -u > "$left_modes"
+        modes_for "$right" | sort -u > "$right_modes"
+
+        comm -12 "$left_modes" "$right_modes" | awk -Fx '
+                {
+                        area = $1 * $2
+                        if (area > best) {
+                                best = area
+                                mode = $0
+                        }
+                }
+                END { print mode }
+        '
+
+        rm -f "$left_modes" "$right_modes"
+}
+
+post_apply() {
+        label="$1"
+
+        "$HOME/.local/bin/i3-wallpaper" >/dev/null 2>&1 || true
+        notify "Monitor layout" "$label"
+}
+
+require_external() {
+        external=$(first_external)
+        if [ -z "$external" ]; then
+                notify "Monitor layout" "No external display is connected"
+                return 1
+        fi
+
+        printf '%s\n' "$external"
+}
+
+apply_laptop() {
+        internal=$(internal_output)
+        [ -n "$internal" ] || internal=$(first_connected)
+
+        if [ -z "$internal" ]; then
+                notify "Monitor layout" "No connected display found"
+                exit 1
+        fi
+
+        set -- --output "$internal" --auto --primary
+        for output in $(all_outputs); do
+                [ "$output" = "$internal" ] || set -- "$@" --output "$output" --off
+        done
+
+        xrandr "$@"
+        post_apply "Laptop only"
+}
+
+apply_external() {
+        external=$(require_external) || exit 1
+
+        set -- --output "$external" --auto --primary
+        for output in $(all_outputs); do
+                [ "$output" = "$external" ] || set -- "$@" --output "$output" --off
+        done
+
+        xrandr "$@"
+        post_apply "External only"
+}
+
+apply_dock() {
+        internal=$(internal_output)
+        external=$(first_external)
+
+        if [ -z "$external" ]; then
+                apply_laptop
+                return
+        fi
+
+        set -- --output "$external" --auto --primary
+        if [ -n "$internal" ]; then
+                set -- "$@" --output "$internal" --auto --left-of "$external"
+        fi
+
+        for output in $(all_outputs); do
+                [ "$output" = "$external" ] && continue
+                [ "$output" = "$internal" ] && continue
+                set -- "$@" --output "$output" --off
+        done
+
+        xrandr "$@"
+        post_apply "Docked"
+}
+
+apply_extend() {
+        internal=$(internal_output)
+        external=$(require_external) || exit 1
+
+        if [ -z "$internal" ]; then
+                apply_external
+                return
+        fi
+
+        set -- --output "$internal" --auto --primary --output "$external" --auto --right-of "$internal"
+        for output in $(all_outputs); do
+                [ "$output" = "$internal" ] && continue
+                [ "$output" = "$external" ] && continue
+                set -- "$@" --output "$output" --off
+        done
+
+        xrandr "$@"
+        post_apply "Extended right"
+}
+
+apply_mirror() {
+        internal=$(internal_output)
+        external=$(require_external) || exit 1
+
+        if [ -z "$internal" ]; then
+                apply_external
+                return
+        fi
+
+        mode=$(common_mode "$internal" "$external")
+        if [ -z "$mode" ]; then
+                notify "Monitor layout" "No common mode for $internal and $external"
+                exit 1
+        fi
+
+        set -- --output "$internal" --mode "$mode" --primary --output "$external" --mode "$mode" --same-as "$internal"
+        for output in $(all_outputs); do
+                [ "$output" = "$internal" ] && continue
+                [ "$output" = "$external" ] && continue
+                set -- "$@" --output "$output" --off
+        done
+
+        xrandr "$@"
+        post_apply "Mirrored at $mode"
+}
+
+list_outputs() {
+        xrandr --query | awk '
+                $2 == "connected" {
+                        status = "connected"
+                        mode = ""
+                        for (i = 1; i <= NF; i++) {
+                                if ($i ~ /^[0-9]+x[0-9]+\+/) {
+                                        mode = " " $i
+                                }
+                        }
+                        if ($3 == "primary") {
+                                status = status " primary"
+                        }
+                        print $1 " " status mode
+                }
+                $2 == "disconnected" {
+                        print $1 " disconnected"
+                }
+        '
+}
+
+choose() {
+        options="Auto
+Laptop only
+External only
+Extend right
+Mirror
+List outputs"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -p monitor -theme "$theme"
+        else
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+case "${1:-menu}" in
+        auto|dock)
+                apply_dock
+                ;;
+        laptop)
+                apply_laptop
+                ;;
+        external)
+                apply_external
+                ;;
+        extend)
+                apply_extend
+                ;;
+        mirror)
+                apply_mirror
+                ;;
+        list)
+                list_outputs
+                ;;
+        menu)
+                selection=$(choose)
+                case "$selection" in
+                        Auto) apply_dock ;;
+                        "Laptop only") apply_laptop ;;
+                        "External only") apply_external ;;
+                        "Extend right") apply_extend ;;
+                        Mirror) apply_mirror ;;
+                        "List outputs")
+                                outputs=$(list_outputs)
+                                printf '%s\n' "$outputs"
+                                notify "Displays" "$outputs"
+                                ;;
+                        "") exit 0 ;;
+                        *)
+                                notify "Monitor layout" "Unknown option: $selection"
+                                exit 1
+                                ;;
+                esac
+                ;;
+        *)
+                printf 'usage: %s [auto|dock|laptop|external|extend|mirror|list|menu] [--quiet]\n' "$0" >&2
+                exit 2
+                ;;
+esac

@@ -1,0 +1,47 @@
+#!/bin/sh
+
+font="monospace:size=12"
+background="#1d2021"
+foreground="#ebdbb2"
+selected_background="#8ec07c"
+selected_foreground="#1d2021"
+lines="14"
+rofi_theme="$HOME/.config/rofi/i3-launcher.rasi"
+
+case "${1:-apps}" in
+        apps)
+                if command -v rofi >/dev/null 2>&1; then
+                        exec rofi -show drun -theme "$rofi_theme"
+                fi
+
+                dmenu_cmd="dmenu -i -l $lines -p 'app' -fn '$font' -nb '$background' -nf '$foreground' -sb '$selected_background' -sf '$selected_foreground'"
+                exec i3-dmenu-desktop --dmenu="$dmenu_cmd"
+                ;;
+        run)
+                if command -v rofi >/dev/null 2>&1; then
+                        exec rofi -show run -theme "$rofi_theme"
+                fi
+
+                exec dmenu_run \
+                        -i \
+                        -l "$lines" \
+                        -p "run" \
+                        -fn "$font" \
+                        -nb "$background" \
+                        -nf "$foreground" \
+                        -sb "$selected_background" \
+                        -sf "$selected_foreground"
+                ;;
+        window)
+                if command -v rofi >/dev/null 2>&1; then
+                        exec rofi -show window -theme "$rofi_theme"
+                fi
+
+                printf 'rofi is required for window mode\n' >&2
+                exit 1
+                ;;
+        *)
+                printf 'usage: %s [apps|run|window]\n' "$0" >&2
+                exit 2
+                ;;
+esac

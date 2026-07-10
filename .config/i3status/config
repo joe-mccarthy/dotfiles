@@ -1,0 +1,57 @@
+# i3status config for i3bar.
+
+general {
+        output_format = "i3bar"
+        colors = true
+        interval = 5
+        color_good = "#8ec07c"
+        color_degraded = "#fabd2f"
+        color_bad = "#fb4934"
+}
+
+order += "battery all"
+order += "memory"
+order += "cpu_usage"
+order += "load"
+order += "volume master"
+order += "tztime local"
+
+battery all {
+        format = "%status %percentage"
+        format_down = "BAT n/a"
+        status_chr = "CHR"
+        status_bat = "BAT"
+        status_unk = "UNK"
+        status_full = "FULL"
+        format_percentage = "%.0f%s"
+        low_threshold = 20
+        threshold_type = "percentage"
+}
+
+memory {
+        format = "MEM %percentage_used"
+        threshold_degraded = "20%"
+        threshold_critical = "10%"
+        format_degraded = "MEM %percentage_used"
+}
+
+cpu_usage {
+        format = "CPU %usage"
+        degraded_threshold = 75
+        max_threshold = 90
+}
+
+load {
+        format = "LOAD %1min"
+        max_threshold = "5"
+}
+
+volume master {
+        format = "VOL %volume"
+        format_muted = "VOL muted"
+        device = "pulse"
+}
+
+tztime local {
+        format = "%a %d %b %H:%M  "
+}

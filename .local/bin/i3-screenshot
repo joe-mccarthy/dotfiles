@@ -1,0 +1,124 @@
+#!/bin/sh
+
+tool_root="$HOME/.local/opt/screenshot-tools"
+tool_lib="$tool_root/usr/lib/x86_64-linux-gnu"
+local_maim="$tool_root/usr/bin/maim"
+local_xclip="$tool_root/usr/bin/xclip"
+screenshot_dir="$HOME/Pictures/Screenshots"
+selection_color="0.556,0.753,0.486,0.9"
+
+find_tool() {
+        name="$1"
+        fallback="$2"
+
+        if command -v "$name" >/dev/null 2>&1; then
+                command -v "$name"
+                return
+        fi
+
+        [ -x "$fallback" ] && printf '%s\n' "$fallback"
+}
+
+maim="$(find_tool maim "$local_maim")"
+xclip="$(find_tool xclip "$local_xclip")"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2"
+        fi
+}
+
+need_tools() {
+        if [ -z "$maim" ] || [ -z "$xclip" ]; then
+                notify "Screenshot failed" "maim/xclip are not available"
+                exit 1
+        fi
+}
+
+run_tool() {
+        tool="$1"
+        shift
+
+        case "$tool" in
+                "$tool_root"/*) LD_LIBRARY_PATH="$tool_lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$tool" "$@" ;;
+                *) "$tool" "$@" ;;
+        esac
+}
+
+run_maim() {
+        run_tool "$maim" "$@"
+}
+
+focused_window_id() {
+        i3-msg -t get_tree | jq -r '.. | objects | select(.focused? == true) | .window // empty' | tail -n 1
+}
+
+capture() {
+        mode="$1"
+        file="$2"
+
+        case "$mode" in
+                full)
+                        run_maim -u "$file"
+                        ;;
+                area)
+                        run_maim -u -s -b 2 -c "$selection_color" "$file"
+                        ;;
+                window)
+                        window_id=$(focused_window_id)
+                        if [ -z "$window_id" ] || [ "$window_id" = "0" ]; then
+                                notify "Screenshot failed" "No focused window found"
+                                return 1
+                        fi
+                        run_maim -u -i "$window_id" "$file"
+                        ;;
+                *)
+                        notify "Screenshot failed" "Unknown mode: $mode"
+                        return 2
+                        ;;
+        esac
+}
+
+save_shot() {
+        mode="$1"
+        mkdir -p "$screenshot_dir"
+        file="$screenshot_dir/screenshot-$(date +%Y-%m-%d_%H-%M-%S).png"
+
+        if capture "$mode" "$file" && [ -s "$file" ]; then
+                notify "Screenshot saved" "$file"
+        else
+                rm -f "$file"
+                notify "Screenshot cancelled" ""
+                exit 1
+        fi
+}
+
+copy_shot() {
+        mode="$1"
+        tmp=$(mktemp --suffix=.png)
+
+        if capture "$mode" "$tmp" && [ -s "$tmp" ]; then
+                run_tool "$xclip" -selection clipboard -t image/png -i "$tmp"
+                rm -f "$tmp"
+                notify "Screenshot copied" "Copied to clipboard"
+        else
+                rm -f "$tmp"
+                notify "Screenshot cancelled" ""
+                exit 1
+        fi
+}
+
+need_tools
+
+case "${1:-area-copy}" in
+        full-save) save_shot full ;;
+        full-copy) copy_shot full ;;
+        area-save) save_shot area ;;
+        area-copy) copy_shot area ;;
+        window-save) save_shot window ;;
+        window-copy) copy_shot window ;;
+        *)
+                printf 'usage: %s full-save|full-copy|area-save|area-copy|window-save|window-copy\n' "$0" >&2
+                exit 2
+                ;;
+esac

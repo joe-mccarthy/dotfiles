@@ -1,0 +1,45 @@
+#!/bin/sh
+
+i3status_config="$HOME/.config/i3status/config"
+wifi_if="wlp3s0"
+lan_if="enp0s31f6"
+
+network_block() {
+        if [ "$(cat "/sys/class/net/$lan_if/carrier" 2>/dev/null)" = "1" ]; then
+                printf '{"name":"network","color":"#8ec07c","markup":"none","full_text":"NET LAN"}'
+                return
+        fi
+
+        wifi_state=$(cat "/sys/class/net/$wifi_if/operstate" 2>/dev/null)
+        if [ "$wifi_state" = "up" ]; then
+                quality=$(awk -v iface="$wifi_if:" '$1 == iface {gsub(/\./, "", $3); printf "%d%%", ($3 * 100 / 70)}' /proc/net/wireless 2>/dev/null)
+                if [ -n "$quality" ]; then
+                        printf '{"name":"network","color":"#8ec07c","markup":"none","full_text":"NET WIFI %s"}' "$quality"
+                else
+                        printf '{"name":"network","color":"#8ec07c","markup":"none","full_text":"NET WIFI"}'
+                fi
+                return
+        fi
+
+        printf '{"name":"network","color":"#fb4934","markup":"none","full_text":"NET down"}'
+}
+
+i3status -c "$i3status_config" | while IFS= read -r line; do
+        case "$line" in
+                '[' | '{"version":1}')
+                        printf '%s\n' "$line"
+                        ;;
+                ,\[*)
+                        data=${line#,}
+                        data=${data#?}
+                        printf ',[%s,%s\n' "$(network_block)" "$data"
+                        ;;
+                \[*)
+                        data=${line#?}
+                        printf '[%s,%s\n' "$(network_block)" "$data"
+                        ;;
+                *)
+                        printf '%s\n' "$line"
+                        ;;
+        esac
+done

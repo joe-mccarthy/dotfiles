@@ -1,0 +1,24 @@
+#!/bin/sh
+
+config="$HOME/.config/picom/picom.conf"
+local_root="$HOME/.local/opt/picom-debian"
+local_bin="$local_root/usr/bin/picom"
+local_lib="$local_root/usr/lib/x86_64-linux-gnu"
+log_file="${XDG_RUNTIME_DIR:-/tmp}/picom.log"
+
+pkill -x picom 2>/dev/null || true
+
+if command -v picom >/dev/null 2>&1; then
+        exec picom --config "$config" --log-level=warn --log-file="$log_file"
+fi
+
+if [ -x "$local_bin" ]; then
+        export LD_LIBRARY_PATH="$local_lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        exec "$local_bin" --config "$config" --log-level=warn --log-file="$log_file"
+fi
+
+if command -v dunstify >/dev/null 2>&1; then
+        dunstify "Compositor unavailable" "Install picom or keep the local picom bundle in place."
+fi
+
+exit 1
