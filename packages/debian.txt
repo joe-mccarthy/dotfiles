@@ -36,6 +36,10 @@ wireplumber
 pipewire-pulse
 pavucontrol
 qutebrowser
+thunar
+thunar-volman
+thunar-archive-plugin
+tumbler
 x11-xkb-utils
 x11-xserver-utils
 xss-lock

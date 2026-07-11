@@ -1,5 +1,7 @@
 [Default Applications]
 application/xhtml+xml=org.qutebrowser.qutebrowser.desktop
+application/x-gnome-saved-search=thunar.desktop
+inode/directory=thunar.desktop
 text/html=org.qutebrowser.qutebrowser.desktop
 x-scheme-handler/bruno=bruno.desktop
 x-scheme-handler/http=org.qutebrowser.qutebrowser.desktop

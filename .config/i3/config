@@ -111,6 +111,9 @@ bindsym $mod+Return exec --no-startup-id ~/.local/bin/kitty
 # start browser
 bindsym $mod+b exec --no-startup-id qutebrowser
 
+# start file manager
+bindsym $mod+Shift+f exec --no-startup-id thunar
+
 # kill focused window
 bindsym $mod+Shift+q kill
 

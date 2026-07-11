@@ -14,6 +14,7 @@ microsoft_keyring="/usr/share/keyrings/microsoft.gpg"
 microsoft_source="/etc/apt/sources.list.d/vscode.list"
 microsoft_repo="deb [arch=amd64 signed-by=$microsoft_keyring] https://packages.microsoft.com/repos/code stable main"
 qutebrowser_desktop="org.qutebrowser.qutebrowser.desktop"
+thunar_desktop="thunar.desktop"
 
 catppuccin_flavor="frappe"
 catppuccin_accent="mauve"
@@ -389,6 +390,20 @@ configure_default_browser() {
   fi
 }
 
+configure_default_file_manager() {
+  if [ ! -r "/usr/share/applications/$thunar_desktop" ] \
+    && [ ! -r "$HOME/.local/share/applications/$thunar_desktop" ]; then
+    printf 'Thunar desktop file not found; skipping default file manager setup.\n'
+    return
+  fi
+
+  if command -v xdg-mime >/dev/null 2>&1; then
+    xdg-mime default "$thunar_desktop" \
+      inode/directory \
+      application/x-gnome-saved-search
+  fi
+}
+
 prepare_stow_targets() {
   qutebrowser_target="$target_dir/.config/qutebrowser"
   qutebrowser_source="$dotfiles_dir/.config/qutebrowser"
@@ -438,6 +453,7 @@ if [ -x "$HOME/.local/bin/i3-apply-theme" ]; then
 fi
 
 configure_default_browser
+configure_default_file_manager
 
 cat <<POST_INSTALL
 
