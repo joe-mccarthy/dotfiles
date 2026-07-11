@@ -100,9 +100,12 @@ floating_modifier $mod
 # or left-clicking anywhere into the window while holding the floating modifier.
 tiling_drag modifier titlebar
 
+# Scratchpad terminal.
+for_window [instance="scratchpad-terminal"] floating enable, sticky enable, border pixel 2, resize set 1200 720, move position center, move scratchpad
+
 # Spacing between tiled windows and screen edges.
-gaps inner 8px
-gaps outer 4px
+gaps inner 16px
+gaps outer 8px
 smart_gaps off
 
 # start a terminal
@@ -120,8 +123,14 @@ bindsym $mod+Shift+q kill
 # lock screen
 bindsym $mod+Shift+x exec --no-startup-id ~/.local/bin/i3-lock-screen
 
+# control center, scratchpad terminal, and searchable keybinding help
+bindsym $mod+F12 exec --no-startup-id ~/.local/bin/i3-control-center
+bindsym $mod+Shift+Return exec --no-startup-id ~/.local/bin/i3-scratchpad-terminal
+bindsym $mod+F11 exec --no-startup-id ~/.local/bin/i3-cheatsheet-menu
+
 # monitor layout menu
 bindsym $mod+p exec --no-startup-id ~/.local/bin/i3-monitor-layout menu
+bindsym $mod+Shift+p exec --no-startup-id ~/.local/bin/i3-monitor-scaling menu
 bindsym XF86Display exec --no-startup-id ~/.local/bin/i3-monitor-layout menu
 
 # keyboard layout menu

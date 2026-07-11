@@ -1,0 +1,91 @@
+#!/bin/sh
+
+cheatsheet="$HOME/.dots/CHEATSHEET.md"
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 14 -p keys -fn monospace:size=12 -nb #303446 -nf #c6d0f5 -sb #ca9ee6 -sf #232634"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2" >/dev/null 2>&1 || true
+        fi
+}
+
+entries() {
+        awk '
+                /^## / {
+                        section = $0
+                        sub(/^##[[:space:]]+/, "", section)
+                        next
+                }
+                /^\|/ {
+                        if ($0 ~ /^\|[[:space:]]*(-+|Binding|Command|Mode)[[:space:]]*\|/) {
+                                next
+                        }
+
+                        line = $0
+                        sub(/^\|[[:space:]]*/, "", line)
+                        sub(/[[:space:]]*\|[[:space:]]*$/, "", line)
+                        split(line, fields, /[[:space:]]*\|[[:space:]]*/)
+
+                        key = fields[1]
+                        action = fields[2]
+
+                        gsub(/`/, "", key)
+                        gsub(/`/, "", action)
+
+                        if (key != "" && action != "") {
+                                printf "%-24s  %s  [%s]\n", key, action, section
+                        }
+                }
+        ' "$cheatsheet"
+}
+
+choose() {
+        options="$1"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -i -p keys -theme "$theme"
+        else
+                # shellcheck disable=SC2086
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+copy_binding() {
+        selection="$1"
+        binding=$(printf '%s\n' "$selection" | awk '{ print $1 }')
+
+        if command -v xclip >/dev/null 2>&1; then
+                printf '%s\n' "$binding" | xclip -selection clipboard
+                notify "Keybinding" "Copied $binding"
+        else
+                notify "Keybinding" "$selection"
+        fi
+}
+
+menu() {
+        if [ ! -r "$cheatsheet" ]; then
+                notify "Keybindings" "Missing $cheatsheet"
+                exit 1
+        fi
+
+        options=$(entries)
+        if [ -z "$options" ]; then
+                notify "Keybindings" "No cheat sheet entries found"
+                exit 1
+        fi
+
+        selection=$(choose "$options")
+        [ -n "$selection" ] || exit 0
+
+        copy_binding "$selection"
+}
+
+case "${1:-menu}" in
+        menu) menu ;;
+        list) entries ;;
+        *)
+                printf 'usage: %s [menu|list]\n' "$0" >&2
+                exit 2
+                ;;
+esac

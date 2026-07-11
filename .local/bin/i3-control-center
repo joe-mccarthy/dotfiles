@@ -1,0 +1,105 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 14 -p control -fn monospace:size=12 -nb #303446 -nf #c6d0f5 -sb #ca9ee6 -sf #232634"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2" >/dev/null 2>&1 || true
+        fi
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -i -p "$prompt" -theme "$theme"
+        else
+                # shellcheck disable=SC2086
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+main_options() {
+        cat <<OPTIONS
+Apps
+Run command
+Windows
+Scratchpad terminal
+Keybinding cheat sheet
+Monitor layout
+Monitor scaling
+Keyboard layout
+Audio
+Network
+Bluetooth
+Clipboard
+Notifications
+Screenshot
+Power
+Lock
+Reload i3
+OPTIONS
+}
+
+screenshot_menu() {
+        selection=$(choose "screenshot" "Copy area
+Copy window
+Copy screen
+Save area
+Save window
+Save screen")
+
+        case "$selection" in
+                "Copy area") "$HOME/.local/bin/i3-screenshot" area-copy ;;
+                "Copy window") "$HOME/.local/bin/i3-screenshot" window-copy ;;
+                "Copy screen") "$HOME/.local/bin/i3-screenshot" full-copy ;;
+                "Save area") "$HOME/.local/bin/i3-screenshot" area-save ;;
+                "Save window") "$HOME/.local/bin/i3-screenshot" window-save ;;
+                "Save screen") "$HOME/.local/bin/i3-screenshot" full-save ;;
+                "") exit 0 ;;
+                *)
+                        notify "Control center" "Unknown screenshot action: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+menu() {
+        selection=$(choose "control" "$(main_options)")
+
+        case "$selection" in
+                Apps) "$HOME/.local/bin/i3-app-launcher" apps ;;
+                "Run command") "$HOME/.local/bin/i3-app-launcher" run ;;
+                Windows) "$HOME/.local/bin/i3-app-launcher" window ;;
+                "Scratchpad terminal") "$HOME/.local/bin/i3-scratchpad-terminal" ;;
+                "Keybinding cheat sheet") "$HOME/.local/bin/i3-cheatsheet-menu" ;;
+                "Monitor layout") "$HOME/.local/bin/i3-monitor-layout" menu ;;
+                "Monitor scaling") "$HOME/.local/bin/i3-monitor-scaling" menu ;;
+                "Keyboard layout") "$HOME/.local/bin/i3-keyboard-layout" menu ;;
+                Audio) "$HOME/.local/bin/i3-audio-menu" ;;
+                Network) "$HOME/.local/bin/i3-network-menu" ;;
+                Bluetooth) "$HOME/.local/bin/i3-bluetooth-menu" ;;
+                Clipboard) "$HOME/.local/bin/i3-clipboard-menu" menu ;;
+                Notifications) "$HOME/.local/bin/i3-notifications" menu ;;
+                Screenshot) screenshot_menu ;;
+                Power) "$HOME/.local/bin/i3-power-menu" ;;
+                Lock) "$HOME/.local/bin/i3-lock-screen" ;;
+                "Reload i3") i3-msg reload >/dev/null ;;
+                "") exit 0 ;;
+                *)
+                        notify "Control center" "Unknown action: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+case "${1:-menu}" in
+        menu) menu ;;
+        list) main_options ;;
+        *)
+                printf 'usage: %s [menu|list]\n' "$0" >&2
+                exit 2
+                ;;
+esac

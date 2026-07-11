@@ -300,8 +300,8 @@ configure_logind_power_policy() {
   policy_file=$(mktemp)
   cat > "$policy_file" <<LOGIND
 [Login]
-HandleLidSwitch=suspend
-HandleLidSwitchExternalPower=suspend
+HandleLidSwitch=)
+HandleLidSwitchExternalPower=ignore
 HandleLidSwitchDocked=ignore
 HoldoffTimeoutSec=30s
 LOGIND

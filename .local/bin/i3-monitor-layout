@@ -212,6 +212,7 @@ Laptop only
 External only
 Extend right
 Mirror
+Scale displays
 List outputs"
 
         if command -v rofi >/dev/null 2>&1; then
@@ -249,6 +250,7 @@ case "${1:-menu}" in
                         "External only") apply_external ;;
                         "Extend right") apply_extend ;;
                         Mirror) apply_mirror ;;
+                        "Scale displays") "$HOME/.local/bin/i3-monitor-scaling" menu ;;
                         "List outputs")
                                 outputs=$(list_outputs)
                                 printf '%s\n' "$outputs"

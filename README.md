@@ -41,19 +41,21 @@ The i3 desktop config now lives in this repo:
 - `.config/picom/` for compositor settings
 - `.local/bin/i3-*` and `.local/bin/i3blocks-status` for helper scripts
 
-The current setup includes curated i3 autostart, rofi launcher modes, qutebrowser, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3blocks display. The desktop shell, launcher, notifications, terminal, browser furniture, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
+The current setup includes curated i3 autostart, rofi launcher modes, a unified rofi control center, searchable keybinding help, a scratchpad terminal, qutebrowser, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3blocks display. The desktop shell, launcher, notifications, terminal, browser furniture, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
 
 After the first install from GNOME, log out, select `i3` from the login screen session chooser, then log back in.
 
 Clipboard history is handled by CopyQ with a rofi picker and no tray icon. Use `$mod+c` to search clipboard history and restore the selected item to the clipboard, `$mod+Control+v` to pick and paste an item immediately, `$mod+Shift+v` to open the full CopyQ window, and `$mod+Control+c` for clipboard actions such as delete item, pause, resume, clear, or quit.
 
-Monitor layouts are handled by `.local/bin/i3-monitor-layout`. Use `$mod+p` or the display key to open the layout menu. Startup runs the `auto` layout, which uses the laptop display by itself when undocked and makes the external display primary when one is connected. i3bar is pinned to the current primary output.
+The rofi control center is available with `$mod+F12`. It links the app launcher, window switcher, scratchpad terminal, keybinding help, monitor controls, keyboard layout, audio, network, Bluetooth, clipboard, notification, screenshot, power, lock, and i3 reload actions. Use `$mod+F11` to search the cheat sheet directly, and `$mod+Shift+Return` to toggle the floating scratchpad kitty terminal. New scratchpad terminals start in the focused terminal's working directory when that can be detected.
+
+Monitor layouts are handled by `.local/bin/i3-monitor-layout`. Use `$mod+p` or the display key to open the layout menu, including the monitor scaling submenu for active displays. `$mod+Shift+p` opens the scaling menu directly. Startup runs the `auto` layout, which uses the laptop display by itself when undocked and makes the external display primary when one is connected. i3bar is pinned to the current primary output.
 
 Network and Bluetooth helpers are handled by `.local/bin/i3-network-menu` and `.local/bin/i3-bluetooth-menu`. Use `$mod+Shift+w` for network actions and `$mod+Shift+b` for Bluetooth actions.
 
 Audio devices are handled by `.local/bin/i3-audio-menu`. Use `$mod+Shift+a` to switch output/input devices, mute, adjust volume, open `pavucontrol`, or show current audio status.
 
-qutebrowser is the managed browser and default handler for HTTP, HTTPS, and HTML. Use `$mod+b` to open it. Its chrome is themed with Catppuccin Frappe and JetBrains Mono, while web page fonts are left to the sites themselves.
+qutebrowser is the managed browser and default handler for HTTP, HTTPS, and HTML. Use `$mod+b` to open it. Its minimal chrome is themed with Catppuccin Frappe and JetBrains Mono, while web page fonts are left to the sites themselves.
 
 Startup is intentionally curated by `.local/bin/i3-autostart` instead of running every GNOME autostart entry. It applies GTK/Qt theme environment, starts XSettings, and updates user dirs. Network and Bluetooth are controlled through the rofi helpers, so no network or Bluetooth tray icons are started.
 
@@ -69,7 +71,7 @@ Keyboard layout switching is handled by `.local/bin/i3-keyboard-layout`. Use `$m
 
 ## Terminal Setup
 
-Kitty uses JetBrains Mono, Catppuccin Frappe colours, a tinted wallpaper background, powerline tabs, split-window keybindings, and terminal-friendly clipboard mappings. `Ctrl+c` copies selected text or interrupts when nothing is selected, and `Ctrl+v` pastes from the clipboard. Bash picks up terminal tools from `.bash_aliases`, including Starship, fzf, zoxide, direnv, eza, bat, btop, duf, procs, neovim, lazygit, and git shortcuts when those commands are installed.
+Kitty uses JetBrains Mono, Catppuccin Frappe colours, subtle background opacity, powerline tabs, split-window keybindings, and terminal-friendly clipboard mappings. `Ctrl+c` copies selected text or interrupts when nothing is selected, and `Ctrl+v` pastes from the clipboard. Bash picks up terminal tools from `.bash_aliases`, including Starship, fzf, zoxide, direnv, eza, bat, btop, duf, procs, neovim, lazygit, and git shortcuts when those commands are installed.
 
 VS Code is installed through apt as the `code` package. `init.sh` configures the Microsoft apt repository automatically before installing packages.
 

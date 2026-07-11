@@ -218,7 +218,6 @@ battery_block() {
         done
 
         if [ "$full_total" -le 0 ] 2>/dev/null; then
-                emit "BAT n/a" "BAT" "$muted"
                 return
         fi
 

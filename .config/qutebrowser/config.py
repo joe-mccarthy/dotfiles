@@ -33,31 +33,45 @@ font = "JetBrains Mono"
 
 # Browser chrome only. Do not set c.fonts.web.* so websites keep their own fonts.
 c.fonts.default_family = font
-c.fonts.default_size = "10pt"
-c.fonts.completion.category = f"bold 10pt {font}"
-c.fonts.completion.entry = f"10pt {font}"
-c.fonts.contextmenu = f"10pt {font}"
-c.fonts.downloads = f"10pt {font}"
-c.fonts.hints = f"bold 10pt {font}"
-c.fonts.keyhint = f"10pt {font}"
-c.fonts.messages.error = f"10pt {font}"
-c.fonts.messages.info = f"10pt {font}"
-c.fonts.messages.warning = f"10pt {font}"
-c.fonts.prompts = f"10pt {font}"
-c.fonts.statusbar = f"10pt {font}"
-c.fonts.tabs.selected = f"10pt {font}"
-c.fonts.tabs.unselected = f"10pt {font}"
+c.fonts.default_size = "9pt"
+c.fonts.completion.category = f"bold 9pt {font}"
+c.fonts.completion.entry = f"9pt {font}"
+c.fonts.contextmenu = f"9pt {font}"
+c.fonts.downloads = f"9pt {font}"
+c.fonts.hints = f"bold 9pt {font}"
+c.fonts.keyhint = f"9pt {font}"
+c.fonts.messages.error = f"9pt {font}"
+c.fonts.messages.info = f"9pt {font}"
+c.fonts.messages.warning = f"9pt {font}"
+c.fonts.prompts = f"9pt {font}"
+c.fonts.statusbar = f"9pt {font}"
+c.fonts.tabs.selected = f"9pt {font}"
+c.fonts.tabs.unselected = f"9pt {font}"
 
 c.auto_save.session = True
 c.confirm_quit = ["downloads"]
 c.content.autoplay = False
 c.content.notifications.enabled = False
+c.colors.webpage.darkmode.enabled = True
+c.colors.webpage.darkmode.policy.images = "never"
+c.colors.webpage.darkmode.policy.page = "smart"
+c.colors.webpage.preferred_color_scheme = "dark"
 c.downloads.location.directory = "~/Downloads"
+c.downloads.position = "bottom"
 c.editor.command = ["kitty", "-e", "nvim", "{file}", "-c", "normal {line}G{column0}l"]
 c.session.lazy_restore = True
+c.completion.height = "28%"
+c.completion.scrollbar.width = 0
+c.completion.shrink = True
+c.completion.show = "auto"
+c.statusbar.padding = {"top": 1, "bottom": 1, "left": 6, "right": 6}
+c.statusbar.show = "in-mode"
 c.tabs.background = True
+c.tabs.favicons.show = "never"
 c.tabs.indicator.width = 0
-c.tabs.padding = {"top": 6, "bottom": 6, "left": 10, "right": 10}
+c.tabs.padding = {"top": 2, "bottom": 2, "left": 7, "right": 7}
+c.tabs.show = "always"
+c.tabs.show_switching_delay = 1500
 c.tabs.title.format = "{audio}{current_title}"
 c.window.title_format = "{perc}{current_title}{title_sep}qutebrowser"
 
@@ -76,16 +90,16 @@ config.bind("<Alt-Right>", "forward")
 config.bind("<Ctrl-=>", "zoom-in")
 config.bind("<Ctrl-->", "zoom-out")
 config.bind("<Ctrl-0>", "zoom")
-config.bind("xx", "config-cycle statusbar.show always never")
+config.bind("xx", "config-cycle statusbar.show in-mode always never")
 
 # Catppuccin Frappe for browser furniture only.
 c.colors.completion.fg = palette["text"]
-c.colors.completion.even.bg = palette["base"]
+c.colors.completion.even.bg = palette["mantle"]
 c.colors.completion.odd.bg = palette["mantle"]
 c.colors.completion.category.fg = palette["mauve"]
 c.colors.completion.category.bg = palette["crust"]
 c.colors.completion.category.border.top = palette["crust"]
-c.colors.completion.category.border.bottom = palette["surface0"]
+c.colors.completion.category.border.bottom = palette["crust"]
 c.colors.completion.item.selected.fg = palette["crust"]
 c.colors.completion.item.selected.bg = palette["mauve"]
 c.colors.completion.item.selected.border.top = palette["mauve"]
@@ -135,7 +149,7 @@ c.colors.prompts.selected.fg = palette["crust"]
 
 c.colors.statusbar.normal.bg = palette["mantle"]
 c.colors.statusbar.normal.fg = palette["text"]
-c.colors.statusbar.command.bg = palette["base"]
+c.colors.statusbar.command.bg = palette["mantle"]
 c.colors.statusbar.command.fg = palette["text"]
 c.colors.statusbar.insert.bg = palette["green"]
 c.colors.statusbar.insert.fg = palette["crust"]
@@ -145,7 +159,7 @@ c.colors.statusbar.private.bg = palette["surface0"]
 c.colors.statusbar.private.fg = palette["subtext1"]
 c.colors.statusbar.progress.bg = palette["mauve"]
 c.colors.statusbar.url.error.fg = palette["red"]
-c.colors.statusbar.url.fg = palette["blue"]
+c.colors.statusbar.url.fg = palette["subtext1"]
 c.colors.statusbar.url.hover.fg = palette["sky"]
 c.colors.statusbar.url.success.http.fg = palette["green"]
 c.colors.statusbar.url.success.https.fg = palette["green"]
@@ -153,9 +167,9 @@ c.colors.statusbar.url.warn.fg = palette["yellow"]
 
 c.colors.tabs.bar.bg = palette["crust"]
 c.colors.tabs.even.bg = palette["mantle"]
-c.colors.tabs.even.fg = palette["subtext0"]
+c.colors.tabs.even.fg = palette["overlay1"]
 c.colors.tabs.odd.bg = palette["mantle"]
-c.colors.tabs.odd.fg = palette["subtext0"]
+c.colors.tabs.odd.fg = palette["overlay1"]
 c.colors.tabs.selected.even.bg = palette["mauve"]
 c.colors.tabs.selected.even.fg = palette["crust"]
 c.colors.tabs.selected.odd.bg = palette["mauve"]

@@ -1,0 +1,174 @@
+#!/bin/sh
+
+instance="scratchpad-terminal"
+title="Scratchpad Terminal"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2" >/dev/null 2>&1 || true
+        fi
+}
+
+terminal_id() {
+        i3-msg -t get_tree 2>/dev/null | jq -r --arg instance "$instance" '
+                .. | objects |
+                select(.window_properties? and .window_properties.instance == $instance) |
+                .id
+        ' | head -n 1
+}
+
+focused_window_id() {
+        i3-msg -t get_tree 2>/dev/null | jq -r '
+                .. | objects |
+                select(.focused? == true) |
+                .window // empty
+        ' | tail -n 1
+}
+
+window_pid() {
+        window="$1"
+
+        [ -n "$window" ] || return 1
+        command -v xprop >/dev/null 2>&1 || return 1
+
+        xprop -id "$window" _NET_WM_PID 2>/dev/null | awk '
+                $1 == "_NET_WM_PID(CARDINAL)" && $3 ~ /^[0-9]+$/ {
+                        print $3
+                        exit
+                }
+        '
+}
+
+descendant_pids() {
+        root="$1"
+
+        ps -eo pid=,ppid= | awk -v root="$root" '
+                {
+                        pid = $1
+                        ppid = $2
+                        parent[pid] = ppid
+                        order[++count] = pid
+                }
+                END {
+                        for (i = 1; i <= count; i++) {
+                                pid = order[i]
+                                current = pid
+
+                                while (current in parent) {
+                                        if (parent[current] == root) {
+                                                print pid
+                                                break
+                                        }
+
+                                        if (parent[current] == current || parent[current] == "" || parent[current] == "0") {
+                                                break
+                                        }
+
+                                        current = parent[current]
+                                }
+                        }
+                }
+        '
+}
+
+process_cwd() {
+        pid="$1"
+        dir=$(readlink -e "/proc/$pid/cwd" 2>/dev/null) || return 1
+
+        [ -d "$dir" ] || return 1
+        printf '%s\n' "$dir"
+}
+
+best_cwd_for_pid() {
+        root="$1"
+        home=$(readlink -e "$HOME" 2>/dev/null || printf '%s\n' "$HOME")
+        fallback=""
+
+        for pid in $(descendant_pids "$root") "$root"; do
+                dir=$(process_cwd "$pid") || continue
+
+                [ -n "$fallback" ] || fallback="$dir"
+
+                if [ "$dir" != "$home" ]; then
+                        printf '%s\n' "$dir"
+                        return
+                fi
+        done
+
+        if [ -n "$fallback" ]; then
+                printf '%s\n' "$fallback"
+        else
+                printf '%s\n' "$HOME"
+        fi
+}
+
+focused_cwd() {
+        window=$(focused_window_id)
+        pid=$(window_pid "$window")
+
+        case "$pid" in
+                ''|*[!0-9]*)
+                        printf '%s\n' "$HOME"
+                        ;;
+                *)
+                        best_cwd_for_pid "$pid"
+                        ;;
+        esac
+}
+
+show_terminal() {
+        id="$1"
+
+        [ -n "$id" ] || return 1
+        i3-msg "[con_id=$id] scratchpad show" >/dev/null
+}
+
+launch_terminal() {
+        if ! command -v kitty >/dev/null 2>&1; then
+                notify "Scratchpad terminal" "kitty is not installed"
+                exit 1
+        fi
+
+        cwd=$(focused_cwd)
+        kitty --directory "$cwd" --name "$instance" --title "$title" >/dev/null 2>&1 &
+}
+
+toggle() {
+        if ! command -v jq >/dev/null 2>&1; then
+                notify "Scratchpad terminal" "jq is required"
+                exit 1
+        fi
+
+        id=$(terminal_id)
+        if [ -n "$id" ]; then
+                show_terminal "$id"
+                exit $?
+        fi
+
+        launch_terminal
+
+        count=0
+        while [ "$count" -lt 30 ]; do
+                id=$(terminal_id)
+                if [ -n "$id" ]; then
+                        show_terminal "$id"
+                        exit $?
+                fi
+
+                count=$((count + 1))
+                sleep 0.1
+        done
+
+        notify "Scratchpad terminal" "Started kitty, but could not find the window"
+        exit 1
+}
+
+case "${1:-toggle}" in
+        toggle) toggle ;;
+        id) terminal_id ;;
+        cwd) focused_cwd ;;
+        *)
+                printf 'usage: %s [toggle|id|cwd]\n' "$0" >&2
+                exit 2
+                ;;
+esac

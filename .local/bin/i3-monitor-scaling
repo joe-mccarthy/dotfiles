@@ -1,0 +1,279 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 10 -p scaling -fn monospace:size=12 -nb #303446 -nf #c6d0f5 -sb #ca9ee6 -sf #232634"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2" >/dev/null 2>&1 || true
+        fi
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -p "$prompt" -theme "$theme"
+        else
+                # shellcheck disable=SC2086
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+active_outputs() {
+        xrandr --query 2>/dev/null | awk '
+                $2 == "connected" {
+                        for (i = 1; i <= NF; i++) {
+                                if ($i ~ /^[0-9]+x[0-9]+\+/) {
+                                        print $1
+                                        next
+                                }
+                        }
+                }
+        '
+}
+
+output_options() {
+        {
+                printf 'All active displays\n'
+                xrandr --query 2>/dev/null | awk '
+                        $2 == "connected" {
+                                mode = "off"
+                                primary = ""
+
+                                for (i = 1; i <= NF; i++) {
+                                        if ($i ~ /^[0-9]+x[0-9]+\+/) {
+                                                mode = $i
+                                        }
+                                }
+
+                                if ($3 == "primary") {
+                                        primary = " primary"
+                                }
+
+                                print $1 " " mode primary
+                        }
+                '
+        }
+}
+
+scale_options() {
+        cat <<SCALES
+100% native
+125% larger UI
+150% larger UI
+175% larger UI
+200% larger UI
+80% smaller UI
+67% smaller UI
+Custom percent
+Status
+SCALES
+}
+
+normalize_percent() {
+        printf '%s\n' "$1" | awk '
+                {
+                        value = $0
+                        gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+                        sub(/%.*/, "", value)
+                        gsub(/[[:space:]]+/, "", value)
+
+                        if (value ~ /^[0-9]+([.][0-9]+)?$/ && value > 0) {
+                                print value
+                        }
+                }
+        '
+}
+
+percent_to_scale() {
+        awk -v pct="$1" 'BEGIN {
+                if (pct <= 0) {
+                        exit 1
+                }
+
+                printf "%.4f", 100 / pct
+        }'
+}
+
+apply_scale_to() {
+        output="$1"
+        scale="$2"
+
+        xrandr --output "$output" --scale "${scale}x${scale}"
+}
+
+apply_scale() {
+        target="$1"
+        percent="$2"
+        scale=$(percent_to_scale "$percent") || {
+                notify "Monitor scaling" "Invalid scale: $percent"
+                exit 1
+        }
+
+        if [ "$target" = "all" ]; then
+                outputs=$(active_outputs)
+                if [ -z "$outputs" ]; then
+                        notify "Monitor scaling" "No active display found"
+                        exit 1
+                fi
+
+                set --
+                for output in $outputs; do
+                        set -- "$@" --output "$output" --scale "${scale}x${scale}"
+                done
+
+                if ! xrandr "$@"; then
+                        notify "Monitor scaling" "Failed to set all active displays to ${percent}%"
+                        exit 1
+                fi
+                label="All active displays"
+        else
+                if ! apply_scale_to "$target" "$scale"; then
+                        notify "Monitor scaling" "Failed to set $target to ${percent}%"
+                        exit 1
+                fi
+                label="$target"
+        fi
+
+        "$HOME/.local/bin/i3-wallpaper" >/dev/null 2>&1 || true
+        notify "Monitor scaling" "$label set to ${percent}%"
+}
+
+status() {
+        xrandr_output=$(xrandr --verbose 2>/dev/null)
+        if [ -z "$xrandr_output" ]; then
+                message="No displays found"
+                printf '%s\n' "$message"
+                notify "Monitor scaling" "$message"
+                return 1
+        fi
+
+        message=$(printf '%s\n' "$xrandr_output" | awk '
+                $2 == "connected" {
+                        output = $1
+                        mode = "off"
+                        for (i = 1; i <= NF; i++) {
+                                if ($i ~ /^[0-9]+x[0-9]+\+/) {
+                                        mode = $i
+                                }
+                        }
+                }
+                /^[[:space:]]+[0-9]+x[0-9]+/ && $2 ~ /\*/ {
+                        native = $1
+                }
+                /^[[:space:]]+Transform:/ && output != "" {
+                        split($2, row, ",")
+                        scale = row[1]
+                        ui = ""
+
+                        if (scale > 0) {
+                                ui = sprintf(" %.0f%% UI", 100 / scale)
+                        }
+
+                        print output " " mode ui
+                        output = ""
+                        native = ""
+                }
+        ')
+
+        [ -n "$message" ] || message="No displays found"
+        printf '%s\n' "$message"
+        notify "Monitor scaling" "$message"
+}
+
+pick_percent() {
+        selection=$(choose "scale" "$(scale_options)") || return 130
+        [ -n "$selection" ] || return 130
+
+        case "$selection" in
+                Status)
+                        status
+                        return 130
+                        ;;
+                "Custom percent")
+                        custom=$(choose "percent" "100
+125
+150
+175
+200") || return 130
+                        [ -n "$custom" ] || return 130
+                        percent=$(normalize_percent "$custom")
+                        ;;
+                *)
+                        percent=$(normalize_percent "$selection")
+                        ;;
+        esac
+
+        if [ -z "$percent" ]; then
+                notify "Monitor scaling" "Invalid scale: $selection"
+                return 1
+        fi
+
+        printf '%s\n' "$percent"
+}
+
+menu() {
+        outputs=$(active_outputs)
+        if [ -z "$outputs" ]; then
+                notify "Monitor scaling" "No active display found"
+                exit 1
+        fi
+
+        selection=$(choose "display" "$(output_options)") || exit 0
+        [ -n "$selection" ] || exit 0
+
+        case "$selection" in
+                "All active displays")
+                        target="all"
+                        ;;
+                *)
+                        target=$(printf '%s\n' "$selection" | awk '{ print $1 }')
+                        if ! printf '%s\n' "$outputs" | grep -Fxq "$target"; then
+                                notify "Monitor scaling" "Display is not active: $target"
+                                exit 1
+                        fi
+                        ;;
+        esac
+
+        percent=$(pick_percent)
+        status=$?
+
+        case "$status" in
+                0) ;;
+                130) exit 0 ;;
+                *) exit "$status" ;;
+        esac
+
+        apply_scale "$target" "$percent"
+}
+
+if ! command -v xrandr >/dev/null 2>&1; then
+        notify "Monitor scaling" "xrandr is not installed"
+        exit 1
+fi
+
+case "${1:-menu}" in
+        menu) menu ;;
+        status) status ;;
+        apply)
+                target="${2:-}"
+                percent=$(normalize_percent "${3:-}")
+
+                if [ -z "$target" ] || [ -z "$percent" ]; then
+                        printf 'usage: %s apply [all|OUTPUT] PERCENT\n' "$0" >&2
+                        exit 2
+                fi
+
+                apply_scale "$target" "$percent"
+                ;;
+        reset)
+                target="${2:-all}"
+                apply_scale "$target" 100
+                ;;
+        *)
+                printf 'usage: %s [menu|status|reset|apply]\n' "$0" >&2
+                exit 2
+                ;;
+esac
