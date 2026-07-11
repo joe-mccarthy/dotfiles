@@ -46,6 +46,8 @@ qt5ct
 qt6ct
 qt5-style-kvantum
 qt6-style-kvantum
+papirus-icon-theme
+bibata-cursor-theme
 
 # Terminal and development
 code

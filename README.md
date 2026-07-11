@@ -55,7 +55,7 @@ Audio devices are handled by `.local/bin/i3-audio-menu`. Use `$mod+Shift+a` to s
 
 Startup is intentionally curated by `.local/bin/i3-autostart` instead of running every GNOME autostart entry. It applies GTK/Qt theme environment, starts XSettings, and updates user dirs. Network and Bluetooth are controlled through the rofi helpers, so no network or Bluetooth tray icons are started.
 
-GTK and Qt app styling uses Catppuccin Frappe, JetBrains Mono, qt5ct/qt6ct, and Kvantum. `init.sh` can install the Catppuccin GTK theme and Qt theme files into your user config:
+GTK and Qt app styling uses Catppuccin Frappe, JetBrains Mono, Papirus-Dark icons, Bibata-Modern-Ice cursors, qt5ct/qt6ct, and Kvantum. `init.sh` can install the Catppuccin GTK theme, Qt theme files, icon theme, and cursor theme:
 
 ```sh
 ./init.sh --catppuccin-only

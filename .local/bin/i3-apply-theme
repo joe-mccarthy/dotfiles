@@ -10,10 +10,10 @@ if [ -r "$theme_env" ]; then
 fi
 
 gtk_theme_name="${GTK_THEME_NAME:-catppuccin-frappe-mauve-standard+default}"
-icon_theme_name="${GTK_ICON_THEME_NAME:-Adwaita}"
+icon_theme_name="${GTK_ICON_THEME_NAME:-Papirus-Dark}"
 font_name="${GTK_FONT_NAME:-JetBrains Mono 10}"
 monospace_font_name="${GTK_MONOSPACE_FONT_NAME:-JetBrains Mono 10}"
-cursor_theme_name="${GTK_CURSOR_THEME_NAME:-Adwaita}"
+cursor_theme_name="${GTK_CURSOR_THEME_NAME:-Bibata-Modern-Ice}"
 cursor_theme_size="${GTK_CURSOR_THEME_SIZE:-24}"
 
 export GTK_THEME="${GTK_THEME:-$gtk_theme_name}"

@@ -174,7 +174,9 @@ install_catppuccin_apt_dependencies() {
     qt5ct \
     qt6ct \
     qt5-style-kvantum \
-    qt6-style-kvantum
+    qt6-style-kvantum \
+    papirus-icon-theme \
+    bibata-cursor-theme
 }
 
 manifest_contains_package() {
@@ -265,7 +267,7 @@ write_qtct_config() {
 [Appearance]
 color_scheme_path=$color_scheme_path
 custom_palette=true
-icon_theme=Adwaita
+icon_theme=Papirus-Dark
 standard_dialogs=default
 style=kvantum
 
