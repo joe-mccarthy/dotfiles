@@ -37,6 +37,7 @@ Bluetooth
 Clipboard
 Notifications
 Screenshot
+Pomodoro
 Power
 Lock
 Reload i3
@@ -84,6 +85,7 @@ menu() {
                 Clipboard) "$HOME/.local/bin/i3-clipboard-menu" menu ;;
                 Notifications) "$HOME/.local/bin/i3-notifications" menu ;;
                 Screenshot) screenshot_menu ;;
+                Pomodoro) "$HOME/.local/bin/i3-pomodoro" menu ;;
                 Power) "$HOME/.local/bin/i3-power-menu" ;;
                 Lock) "$HOME/.local/bin/i3-lock-screen" ;;
                 "Reload i3") i3-msg reload >/dev/null ;;

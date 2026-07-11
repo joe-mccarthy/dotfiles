@@ -1,0 +1,344 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+theme_env="$HOME/.config/i3/theme.env"
+dmenu_style="-i -l 8 -p timer -fn monospace:size=12 -nb #303446 -nf #c6d0f5 -sb #ca9ee6 -sf #232634"
+state_root="${XDG_RUNTIME_DIR:-}"
+
+if [ -r "$theme_env" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$theme_env"
+        set +a
+fi
+
+text="${CTP_TEXT:-#c6d0f5}"
+muted="${CTP_OVERLAY0:-#737994}"
+good="${CTP_GREEN:-#a6d189}"
+warn="${CTP_YELLOW:-#e5c890}"
+bad="${CTP_RED:-#e78284}"
+
+if [ -n "$state_root" ] && mkdir -p "$state_root/i3-pomodoro" 2>/dev/null; then
+        state_dir="$state_root/i3-pomodoro"
+else
+        state_dir="${TMPDIR:-/tmp}/i3-pomodoro-$(id -u)"
+        mkdir -p "$state_dir"
+fi
+
+state_file="$state_dir/state"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2" >/dev/null 2>&1 || true
+        elif command -v notify-send >/dev/null 2>&1; then
+                notify-send -a i3 "$1" "$2" >/dev/null 2>&1 || true
+        fi
+}
+
+refresh_bar() {
+        pkill -RTMIN+15 -x i3blocks 2>/dev/null || true
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -i -p "$prompt" -theme "$theme"
+        else
+                # shellcheck disable=SC2086
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+load_state() {
+        status="idle"
+        mode="focus"
+        duration=0
+        end_at=0
+        remaining=0
+        notified=no
+
+        if [ -r "$state_file" ]; then
+                # shellcheck disable=SC1090
+                . "$state_file"
+        fi
+}
+
+save_state() {
+        mkdir -p "$state_dir"
+        {
+                printf 'status=%s\n' "$status"
+                printf 'mode=%s\n' "$mode"
+                printf 'duration=%s\n' "$duration"
+                printf 'end_at=%s\n' "$end_at"
+                printf 'remaining=%s\n' "$remaining"
+                printf 'notified=%s\n' "$notified"
+        } > "$state_file"
+}
+
+mode_label() {
+        case "$1" in
+                focus) printf 'POM\n' ;;
+                break) printf 'BRK\n' ;;
+                long_break) printf 'LBRK\n' ;;
+                custom) printf 'TMR\n' ;;
+                *) printf 'POM\n' ;;
+        esac
+}
+
+mode_name() {
+        case "$1" in
+                focus) printf 'Focus\n' ;;
+                break) printf 'Break\n' ;;
+                long_break) printf 'Long break\n' ;;
+                custom) printf 'Timer\n' ;;
+                *) printf 'Pomodoro\n' ;;
+        esac
+}
+
+format_remaining() {
+        seconds="$1"
+        [ "$seconds" -ge 0 ] 2>/dev/null || seconds=0
+
+        minutes=$((seconds / 60))
+        secs=$((seconds % 60))
+        printf '%02d:%02d\n' "$minutes" "$secs"
+}
+
+finish_running_timer() {
+        now=$(date +%s)
+        remaining=$((end_at - now))
+
+        if [ "$remaining" -gt 0 ] 2>/dev/null; then
+                return 1
+        fi
+
+        remaining=0
+        status="done"
+
+        if [ "$notified" != "yes" ]; then
+                notify "Pomodoro" "$(mode_name "$mode") finished."
+                notified=yes
+        fi
+
+        save_state
+        return 0
+}
+
+current_display() {
+        load_state
+        label=$(mode_label "$mode")
+        display_color="$muted"
+
+        case "$status" in
+                running)
+                        finish_running_timer || true
+                        if [ "$status" = "running" ]; then
+                                display_time=$(format_remaining "$remaining")
+                                display_text="$label $display_time"
+                                case "$mode" in
+                                        break|long_break) display_color="$good" ;;
+                                        *) display_color="$text" ;;
+                                esac
+
+                                if [ "$remaining" -le 60 ] 2>/dev/null; then
+                                        display_color="$warn"
+                                fi
+                                return
+                        fi
+                        ;;
+                paused)
+                        display_time=$(format_remaining "$remaining")
+                        display_text="$label pause $display_time"
+                        display_color="$warn"
+                        return
+                        ;;
+                done)
+                        display_text="$label done"
+                        display_color="$bad"
+                        return
+                        ;;
+        esac
+
+        display_text="POM idle"
+        display_color="$muted"
+}
+
+status_block() {
+        handle_click
+        current_display
+        printf ' | %s\n\n%s\n' "$display_text" "$display_color"
+}
+
+human_status() {
+        current_display
+        printf '%s\n' "$display_text"
+        notify "Pomodoro" "$display_text"
+}
+
+start_timer() {
+        mode="$1"
+        minutes="$2"
+
+        case "$minutes" in
+                ''|*[!0-9]*)
+                        notify "Pomodoro" "Invalid duration: $minutes"
+                        exit 1
+                        ;;
+        esac
+
+        if [ "$minutes" -le 0 ] 2>/dev/null; then
+                notify "Pomodoro" "Duration must be greater than zero"
+                exit 1
+        fi
+
+        duration=$((minutes * 60))
+        end_at=$(($(date +%s) + duration))
+        remaining="$duration"
+        status="running"
+        notified=no
+
+        save_state
+        notify "Pomodoro" "Started $(mode_name "$mode") for ${minutes}m."
+        refresh_bar
+}
+
+pause_timer() {
+        load_state
+
+        if [ "$status" != "running" ]; then
+                return
+        fi
+
+        finish_running_timer && {
+                refresh_bar
+                return
+        }
+
+        status="paused"
+        save_state
+        refresh_bar
+}
+
+resume_timer() {
+        load_state
+
+        if [ "$status" != "paused" ]; then
+                return
+        fi
+
+        end_at=$(($(date +%s) + remaining))
+        status="running"
+        save_state
+        refresh_bar
+}
+
+toggle_pause() {
+        load_state
+
+        case "$status" in
+                running) pause_timer ;;
+                paused) resume_timer ;;
+        esac
+}
+
+reset_timer() {
+        rm -f "$state_file"
+        refresh_bar
+}
+
+custom_timer() {
+        selection=$(choose "minutes" "10
+15
+20
+25
+30
+45
+60")
+        [ -n "$selection" ] || exit 0
+
+        minutes=$(printf '%s\n' "$selection" | awk '
+                {
+                        gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+                        sub(/[[:space:]].*/, "")
+                        if ($0 ~ /^[0-9]+$/) {
+                                print
+                        }
+                }
+        ')
+
+        [ -n "$minutes" ] || {
+                notify "Pomodoro" "Invalid duration: $selection"
+                exit 1
+        }
+
+        start_timer custom "$minutes"
+}
+
+menu_options() {
+        load_state
+
+        if [ "$status" = "running" ]; then
+                pause_option="Pause"
+        elif [ "$status" = "paused" ]; then
+                pause_option="Resume"
+        else
+                pause_option=""
+        fi
+
+        {
+                printf 'Start 25 min focus\n'
+                printf 'Start 5 min break\n'
+                printf 'Start 15 min long break\n'
+                printf 'Custom timer\n'
+                [ -n "$pause_option" ] && printf '%s\n' "$pause_option"
+                printf 'Reset\n'
+                printf 'Status\n'
+        }
+}
+
+menu() {
+        selection=$(choose "timer" "$(menu_options)")
+
+        case "$selection" in
+                "Start 25 min focus") start_timer focus 25 ;;
+                "Start 5 min break") start_timer break 5 ;;
+                "Start 15 min long break") start_timer long_break 15 ;;
+                "Custom timer") custom_timer ;;
+                Pause) pause_timer ;;
+                Resume) resume_timer ;;
+                Reset) reset_timer ;;
+                Status) human_status ;;
+                "") exit 0 ;;
+                *)
+                        notify "Pomodoro" "Unknown action: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+handle_click() {
+        case "${BLOCK_BUTTON:-}" in
+                1|3) menu ;;
+                2) toggle_pause ;;
+        esac
+}
+
+case "${1:-menu}" in
+        status) status_block ;;
+        menu) menu ;;
+        start-focus) start_timer focus "${2:-25}" ;;
+        start-break) start_timer break "${2:-5}" ;;
+        start-long-break) start_timer long_break "${2:-15}" ;;
+        start-custom) start_timer custom "${2:-25}" ;;
+        pause) pause_timer ;;
+        resume) resume_timer ;;
+        toggle) toggle_pause ;;
+        reset) reset_timer ;;
+        human-status) human_status ;;
+        *)
+                printf 'usage: %s [menu|status|start-focus|start-break|start-long-break|start-custom|pause|resume|toggle|reset|human-status]\n' "$0" >&2
+                exit 2
+                ;;
+esac
