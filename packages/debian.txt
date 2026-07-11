@@ -35,6 +35,8 @@ blueman
 wireplumber
 pipewire-pulse
 pavucontrol
+playerctl
+mpv
 qutebrowser
 thunar
 thunar-volman

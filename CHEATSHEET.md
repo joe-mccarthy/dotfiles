@@ -25,6 +25,10 @@
 | `Mod+Tab` | Window switcher |
 | `Mod+F12` | Unified control center |
 | `Mod+F11` | Search this cheat sheet |
+| `Mod+o` | Notes menu |
+| `Mod+Shift+o` | Quick note |
+| `Mod+m` | Media controller |
+| `Mod+Shift+m` | Radio menu |
 | `Mod+p` | Monitor layout menu, including scaling |
 | `Mod+Shift+p` | Monitor scaling menu |
 | `XF86Display` | Monitor layout menu |
@@ -62,6 +66,41 @@
 | `Mod+F2` | Volume down 5% |
 | `Mod+F3` | Volume up 5% |
 | `Mod+Shift+F10` | Toggle mic mute |
+
+## Media
+
+| Binding | Action |
+| --- | --- |
+| `Mod+m` | Media controller |
+| `Mod+F7` | Previous track |
+| `Mod+F8` | Play or pause active media player |
+| `Mod+F9` | Next track |
+| `Mod+Shift+F9` | Stop playback |
+| `XF86AudioPlay` | Play or pause active media player |
+| `XF86AudioNext` | Next track |
+| `XF86AudioPrev` | Previous track |
+| `XF86AudioStop` | Stop playback |
+
+When music is playing, the status bar media block appears. Left click toggles play/pause, middle click or scroll up skips next, right click opens the media menu, and scroll down goes previous.
+
+## Radio
+
+Radio stations are configured in local-only `~/.config/i3/radio-stations.tsv` as `Name<TAB>Stream URL`. The repo template is `radio/stations.tsv.example`.
+
+| Binding | Action |
+| --- | --- |
+| `Mod+Shift+m` | Open radio menu |
+
+The status bar radio block appears while radio is playing. Left or right click opens the radio menu; middle click stops radio.
+
+## Notes
+
+Notes are stored as Markdown under `~/.local/share/notes`.
+
+| Binding | Action |
+| --- | --- |
+| `Mod+o` | Open notes menu |
+| `Mod+Shift+o` | Append a quick note to today's daily note |
 
 ## Screenshots
 

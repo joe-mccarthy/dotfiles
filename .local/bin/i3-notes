@@ -1,0 +1,297 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 12 -p notes -fn monospace:size=12 -nb #303446 -nf #c6d0f5 -sb #ca9ee6 -sf #232634"
+notes_dir="${I3_NOTES_DIR:-$HOME/.local/share/notes}"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2" >/dev/null 2>&1 || true
+        fi
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -i -p "$prompt" -theme "$theme"
+        else
+                # shellcheck disable=SC2086
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+input_text() {
+        prompt="$1"
+
+        if command -v rofi >/dev/null 2>&1; then
+                rofi -dmenu -p "$prompt" -theme "$theme"
+        else
+                # shellcheck disable=SC2086
+                dmenu $dmenu_style -p "$prompt"
+        fi
+}
+
+notes_editor() {
+        if [ -n "${I3_NOTES_EDITOR:-}" ]; then
+                printf '%s\n' "$I3_NOTES_EDITOR"
+                return
+        fi
+
+        for editor in nvim vim vi; do
+                if command -v "$editor" >/dev/null 2>&1; then
+                        printf '%s\n' "$editor"
+                        return
+                fi
+        done
+
+        printf '%s\n' "${VISUAL:-${EDITOR:-vi}}"
+}
+
+ensure_notes_dir() {
+        mkdir -p "$notes_dir/daily" || {
+                notify "Notes" "Could not create $notes_dir"
+                exit 1
+        }
+}
+
+daily_file() {
+        printf '%s/daily/%s.md\n' "$notes_dir" "$(date +%F)"
+}
+
+ensure_note_file() {
+        file="$1"
+        title="$2"
+
+        mkdir -p "$(dirname "$file")" || {
+                notify "Notes" "Could not create $(dirname "$file")"
+                exit 1
+        }
+
+        if [ ! -e "$file" ]; then
+                {
+                        printf '# %s\n' "$title"
+                        printf '\n'
+                } >"$file" || {
+                        notify "Notes" "Could not create $file"
+                        exit 1
+                }
+        fi
+}
+
+open_note() {
+        file="$1"
+        line="${2:-}"
+
+        ensure_note_file "$file" "$(basename "$file" .md)"
+
+        dir=$(dirname "$file")
+        name=$(basename "$file")
+        editor=$(notes_editor)
+
+        if command -v kitty >/dev/null 2>&1; then
+                if [ -n "$line" ]; then
+                        # shellcheck disable=SC2016
+                        kitty --title "Notes - $name" --directory "$dir" -e sh -lc '
+                                editor=$1
+                                line=$2
+                                file=$3
+                                command=${editor%% *}
+                                command=${command##*/}
+                                case "$command" in
+                                        nvim|vim|vi)
+                                                # shellcheck disable=SC2086
+                                                exec $editor "+$line" "$file"
+                                                ;;
+                                        *)
+                                                # shellcheck disable=SC2086
+                                                exec $editor "$file"
+                                                ;;
+                                esac
+                        ' i3-notes-editor "$editor" "$line" "$file" >/dev/null 2>&1 &
+                else
+                        # shellcheck disable=SC2016
+                        kitty --title "Notes - $name" --directory "$dir" -e sh -lc '
+                                editor=$1
+                                file=$2
+                                # shellcheck disable=SC2086
+                                exec $editor "$file"
+                        ' i3-notes-editor "$editor" "$file" >/dev/null 2>&1 &
+                fi
+                exit 0
+        fi
+
+        if [ -n "$line" ]; then
+                command=${editor%% *}
+                command=${command##*/}
+                case "$command" in
+                        nvim|vim|vi)
+                                # shellcheck disable=SC2086
+                                $editor "+$line" "$file" >/dev/null 2>&1 &
+                                ;;
+                        *)
+                                # shellcheck disable=SC2086
+                                $editor "$file" >/dev/null 2>&1 &
+                                ;;
+                esac
+        else
+                # shellcheck disable=SC2086
+                $editor "$file" >/dev/null 2>&1 &
+        fi
+}
+
+quick_note() {
+        ensure_notes_dir
+
+        note=$(input_text "note")
+        [ -n "$note" ] || exit 0
+
+        file=$(daily_file)
+        ensure_note_file "$file" "$(date '+%A, %d %B %Y')"
+
+        printf -- '- %s %s\n' "$(date +%H:%M)" "$note" >>"$file" || {
+                notify "Notes" "Could not write to $file"
+                exit 1
+        }
+
+        notify "Notes" "Saved quick note"
+}
+
+open_today() {
+        ensure_notes_dir
+        file=$(daily_file)
+        ensure_note_file "$file" "$(date '+%A, %d %B %Y')"
+        line=$(wc -l <"$file" 2>/dev/null || printf '1')
+        open_note "$file" "$line"
+}
+
+open_scratch() {
+        ensure_notes_dir
+        open_note "$notes_dir/scratch.md"
+}
+
+list_notes() {
+        ensure_notes_dir
+
+        find "$notes_dir" -type f \( -name '*.md' -o -name '*.txt' \) -printf '%P\n' 2>/dev/null | sort
+}
+
+recent_notes() {
+        ensure_notes_dir
+
+        recent=$(find "$notes_dir" -type f \( -name '*.md' -o -name '*.txt' \) -printf '%T@ %P\n' 2>/dev/null | sort -rn | sed 's/^[^ ]* //' | head -n 20)
+        if [ -z "$recent" ]; then
+                notify "Notes" "No notes yet"
+                exit 0
+        fi
+
+        selection=$(choose "recent" "$recent")
+        [ -n "$selection" ] || exit 0
+        open_note "$notes_dir/$selection"
+}
+
+browse_notes() {
+        notes=$(list_notes)
+        if [ -z "$notes" ]; then
+                notify "Notes" "No notes yet"
+                exit 0
+        fi
+
+        selection=$(choose "notes" "$notes")
+        [ -n "$selection" ] || exit 0
+        open_note "$notes_dir/$selection"
+}
+
+search_notes() {
+        ensure_notes_dir
+
+        query=$(input_text "search")
+        [ -n "$query" ] || exit 0
+
+        if command -v rg >/dev/null 2>&1; then
+                results=$(rg -n --no-heading --color=never -F "$query" "$notes_dir" 2>/dev/null | sed "s|^$notes_dir/||" | head -n 80)
+        else
+                results=$(grep -RInF "$query" "$notes_dir" 2>/dev/null | sed "s|^$notes_dir/||" | head -n 80)
+        fi
+
+        if [ -z "$results" ]; then
+                notify "Notes" "No matches for $query"
+                exit 0
+        fi
+
+        selection=$(choose "matches" "$results")
+        [ -n "$selection" ] || exit 0
+
+        file=${selection%%:*}
+        rest=${selection#*:}
+        line=${rest%%:*}
+
+        case "$line" in
+                ''|*[!0-9]*)
+                        line=
+                        ;;
+        esac
+
+        open_note "$notes_dir/$file" "$line"
+}
+
+open_folder() {
+        ensure_notes_dir
+
+        if command -v thunar >/dev/null 2>&1; then
+                thunar "$notes_dir" >/dev/null 2>&1 &
+        elif command -v xdg-open >/dev/null 2>&1; then
+                xdg-open "$notes_dir" >/dev/null 2>&1 &
+        else
+                notify "Notes" "No file manager found"
+                exit 1
+        fi
+}
+
+main_options() {
+        cat <<OPTIONS
+Quick note
+Open today
+Open scratch
+Search notes
+Recent notes
+Browse notes
+Open notes folder
+OPTIONS
+}
+
+menu() {
+        selection=$(choose "notes" "$(main_options)")
+
+        case "$selection" in
+                "Quick note") quick_note ;;
+                "Open today") open_today ;;
+                "Open scratch") open_scratch ;;
+                "Search notes") search_notes ;;
+                "Recent notes") recent_notes ;;
+                "Browse notes") browse_notes ;;
+                "Open notes folder") open_folder ;;
+                "") exit 0 ;;
+                *)
+                        notify "Notes" "Unknown option: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+case "${1:-menu}" in
+        menu) menu ;;
+        quick) quick_note ;;
+        today) open_today ;;
+        scratch) open_scratch ;;
+        search) search_notes ;;
+        recent) recent_notes ;;
+        browse) browse_notes ;;
+        folder) open_folder ;;
+        list) main_options ;;
+        *)
+                printf 'usage: %s [menu|quick|today|scratch|search|recent|browse|folder|list]\n' "$0" >&2
+                exit 2
+                ;;
+esac

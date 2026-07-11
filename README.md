@@ -41,13 +41,19 @@ The i3 desktop config now lives in this repo:
 - `.config/picom/` for compositor settings
 - `.local/bin/i3-*` and `.local/bin/i3blocks-status` for helper scripts
 
-The current setup includes curated i3 autostart, rofi launcher modes, a unified rofi control center, searchable keybinding help, a scratchpad terminal, qutebrowser, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3blocks display. The desktop shell, launcher, notifications, terminal, browser furniture, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
+The current setup includes curated i3 autostart, rofi launcher modes, a unified rofi control center, searchable keybinding help, a scratchpad terminal, Markdown notes, media controls, configurable internet radio, qutebrowser, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3blocks display. The desktop shell, launcher, notifications, terminal, browser furniture, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
 
 After the first install from GNOME, log out, select `i3` from the login screen session chooser, then log back in.
 
 Clipboard history is handled by CopyQ with a rofi picker and no tray icon. Use `$mod+c` to search clipboard history and restore the selected item to the clipboard, `$mod+Control+v` to pick and paste an item immediately, `$mod+Shift+v` to open the full CopyQ window, and `$mod+Control+c` for clipboard actions such as delete item, pause, resume, clear, or quit.
 
-The rofi control center is available with `$mod+F12`. It links the app launcher, window switcher, scratchpad terminal, keybinding help, monitor controls, keyboard layout, audio, network, Bluetooth, clipboard, notification, screenshot, power, lock, and i3 reload actions. Use `$mod+F11` to search the cheat sheet directly, and `$mod+Shift+Return` to toggle the floating scratchpad kitty terminal. New scratchpad terminals start in the focused terminal's working directory when that can be detected.
+The rofi control center is available with `$mod+F12`. It links the app launcher, window switcher, scratchpad terminal, keybinding help, notes, media controls, radio, monitor controls, keyboard layout, audio, network, Bluetooth, clipboard, notification, screenshot, Pomodoro timer, power, lock, and i3 reload actions. Use `$mod+F11` to search the cheat sheet directly, `$mod+Shift+Return` to toggle the floating scratchpad kitty terminal, `$mod+o` for Markdown notes, `$mod+m` for media controls, and `$mod+Shift+m` for radio. New scratchpad terminals start in the focused terminal's working directory when that can be detected.
+
+Media controls use `playerctl` for MPRIS-compatible apps such as browsers, Spotify, and VLC. The i3blocks media block appears only while something is playing and supports click controls.
+
+Radio uses `mpv` and local-only `~/.config/i3/radio-stations.tsv`. Add stations as `Name<TAB>Stream URL`; the repo only keeps `radio/stations.tsv.example`. The radio block appears only while radio is playing.
+
+Notes open in kitty with a terminal editor by default, preferring `nvim`, `vim`, then `vi`. Set `I3_NOTES_EDITOR` to override that.
 
 Monitor layouts are handled by `.local/bin/i3-monitor-layout`. Use `$mod+p` or the display key to open the layout menu, including the monitor scaling submenu for active displays. `$mod+Shift+p` opens the scaling menu directly. Startup runs the `auto` layout, which uses the laptop display by itself when undocked and makes the external display primary when one is connected. i3bar is pinned to the current primary output.
 
@@ -97,4 +103,4 @@ Commit and push with:
 ~/.local/bin/dots-backup sync "Update dotfiles"
 ```
 
-Real secrets belong in `~/.config/secrets/env`. The repo only includes `secrets/env.example`.
+Real secrets belong in `~/.config/secrets/env`; local radio stations belong in `~/.config/i3/radio-stations.tsv`. The repo only includes templates.

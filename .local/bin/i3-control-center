@@ -28,6 +28,9 @@ Run command
 Windows
 Scratchpad terminal
 Keybinding cheat sheet
+Notes
+Media
+Radio
 Monitor layout
 Monitor scaling
 Keyboard layout
@@ -76,6 +79,9 @@ menu() {
                 Windows) "$HOME/.local/bin/i3-app-launcher" window ;;
                 "Scratchpad terminal") "$HOME/.local/bin/i3-scratchpad-terminal" ;;
                 "Keybinding cheat sheet") "$HOME/.local/bin/i3-cheatsheet-menu" ;;
+                Notes) "$HOME/.local/bin/i3-notes" ;;
+                Media) "$HOME/.local/bin/i3-media-controller" ;;
+                Radio) "$HOME/.local/bin/i3-radio-menu" ;;
                 "Monitor layout") "$HOME/.local/bin/i3-monitor-layout" menu ;;
                 "Monitor scaling") "$HOME/.local/bin/i3-monitor-scaling" menu ;;
                 "Keyboard layout") "$HOME/.local/bin/i3-keyboard-layout" menu ;;

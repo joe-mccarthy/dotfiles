@@ -395,6 +395,149 @@ volume_block() {
         fi
 }
 
+media_players() {
+        playerctl -l 2>/dev/null || true
+}
+
+selected_media_player() {
+        media_state_root="${XDG_RUNTIME_DIR:-}"
+        if [ -n "$media_state_root" ]; then
+                media_player_file="$media_state_root/i3-media-controller/player"
+        else
+                media_player_file="${TMPDIR:-/tmp}/i3-media-controller-$(id -u)/player"
+        fi
+
+        [ -r "$media_player_file" ] || return 0
+        player=$(cat "$media_player_file")
+        [ -n "$player" ] || return 0
+
+        if media_players | grep -Fx "$player" >/dev/null 2>&1; then
+                printf '%s\n' "$player"
+        else
+                rm -f "$media_player_file" 2>/dev/null || true
+        fi
+}
+
+active_media_player() {
+        selected=$(selected_media_player)
+        if [ -n "$selected" ]; then
+                printf '%s\n' "$selected"
+                return 0
+        fi
+
+        players=$(media_players)
+        [ -n "$players" ] || return 0
+
+        for player in $players; do
+                status=$(playerctl -p "$player" status 2>/dev/null || true)
+                if [ "$status" = "Playing" ]; then
+                        printf '%s\n' "$player"
+                        return 0
+                fi
+        done
+
+        printf '%s\n' "$players" | awk 'NR == 1 { print; exit }'
+}
+
+short_text() {
+        value="$1"
+        max="$2"
+
+        value=$(printf '%s\n' "$value" | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g; s/^ //; s/ $//')
+        if [ "${#value}" -gt "$max" ] 2>/dev/null; then
+                printf '%s...\n' "$(printf '%s\n' "$value" | cut -c 1-$((max - 3)))"
+        else
+                printf '%s\n' "$value"
+        fi
+}
+
+media_block() {
+        command -v playerctl >/dev/null 2>&1 || return 0
+
+        player=$(active_media_player)
+        [ -n "$player" ] || return 0
+
+        case "${BLOCK_BUTTON:-}" in
+                1)
+                        "$HOME/.local/bin/i3-media-controller" play-pause >/dev/null 2>&1 || true
+                        ;;
+                2|4)
+                        "$HOME/.local/bin/i3-media-controller" next >/dev/null 2>&1 || true
+                        ;;
+                3)
+                        "$HOME/.local/bin/i3-media-controller" menu >/dev/null 2>&1 || true
+                        ;;
+                5)
+                        "$HOME/.local/bin/i3-media-controller" previous >/dev/null 2>&1 || true
+                        ;;
+        esac
+
+        status=$(playerctl -p "$player" status 2>/dev/null || true)
+        [ -n "$status" ] || return 0
+        [ "$status" = "Playing" ] || return 0
+
+        artist=$(playerctl -p "$player" metadata artist 2>/dev/null || true)
+        title=$(playerctl -p "$player" metadata title 2>/dev/null || true)
+
+        if [ -n "$artist" ] && [ -n "$title" ]; then
+                track="$artist - $title"
+        elif [ -n "$title" ]; then
+                track="$title"
+        elif [ -n "$artist" ]; then
+                track="$artist"
+        else
+                track="$player"
+        fi
+
+        track=$(short_text "$track" 46)
+
+        emit "MUS $track" "MUS" "$accent"
+}
+
+radio_block() {
+        radio_state_root="${XDG_RUNTIME_DIR:-}"
+        if [ -n "$radio_state_root" ]; then
+                radio_state_dir="$radio_state_root/i3-radio"
+        else
+                radio_state_dir="${TMPDIR:-/tmp}/i3-radio-$(id -u)"
+        fi
+
+        radio_pid_file="$radio_state_dir/pid"
+        radio_station_file="$radio_state_dir/station"
+
+        case "${BLOCK_BUTTON:-}" in
+                1|3)
+                        "$HOME/.local/bin/i3-radio-menu" menu >/dev/null 2>&1 || true
+                        ;;
+                2)
+                        "$HOME/.local/bin/i3-radio-menu" stop >/dev/null 2>&1 || true
+                        ;;
+        esac
+
+        [ -r "$radio_pid_file" ] || return 0
+        pid=$(cat "$radio_pid_file")
+
+        case "$pid" in
+                ''|*[!0-9]*)
+                        rm -f "$radio_pid_file" "$radio_station_file" 2>/dev/null || true
+                        return 0
+                        ;;
+        esac
+
+        if ! kill -0 "$pid" 2>/dev/null || ! ps -p "$pid" -o comm= 2>/dev/null | grep -Eq '^(mpv|mpv\.com)$'; then
+                rm -f "$radio_pid_file" "$radio_station_file" 2>/dev/null || true
+                return 0
+        fi
+
+        if [ -r "$radio_station_file" ]; then
+                station=$(cat "$radio_station_file")
+        else
+                station="playing"
+        fi
+
+        emit "RAD $(short_text "$station" 36)" "RAD" "$accent"
+}
+
 mic_block() {
         case "${BLOCK_BUTTON:-}" in
                 1|2|3)
@@ -440,6 +583,12 @@ case "${1:-}" in
                 ;;
         load)
                 load_block
+                ;;
+        media)
+                media_block
+                ;;
+        radio)
+                radio_block
                 ;;
         volume)
                 volume_block

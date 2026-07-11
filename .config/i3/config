@@ -93,6 +93,18 @@ bindsym $mod+F3 exec --no-startup-id wpctl set-volume -l 1.0 $audio_sink 5%+ && 
 bindsym $mod+Shift+F10 exec --no-startup-id wpctl set-mute $audio_source toggle && $refresh_i3blocks
 bindsym $mod+Shift+a exec --no-startup-id ~/.local/bin/i3-audio-menu
 
+# Media playback controls.
+bindsym XF86AudioPlay exec --no-startup-id ~/.local/bin/i3-media-controller play-pause
+bindsym XF86AudioNext exec --no-startup-id ~/.local/bin/i3-media-controller next
+bindsym XF86AudioPrev exec --no-startup-id ~/.local/bin/i3-media-controller previous
+bindsym XF86AudioStop exec --no-startup-id ~/.local/bin/i3-media-controller stop
+bindsym $mod+m exec --no-startup-id ~/.local/bin/i3-media-controller
+bindsym $mod+F7 exec --no-startup-id ~/.local/bin/i3-media-controller previous
+bindsym $mod+F8 exec --no-startup-id ~/.local/bin/i3-media-controller play-pause
+bindsym $mod+F9 exec --no-startup-id ~/.local/bin/i3-media-controller next
+bindsym $mod+Shift+F9 exec --no-startup-id ~/.local/bin/i3-media-controller stop
+bindsym $mod+Shift+m exec --no-startup-id ~/.local/bin/i3-radio-menu
+
 # Use Mouse+$mod to drag floating windows to their wanted position
 floating_modifier $mod
 
@@ -127,6 +139,8 @@ bindsym $mod+Shift+x exec --no-startup-id ~/.local/bin/i3-lock-screen
 bindsym $mod+F12 exec --no-startup-id ~/.local/bin/i3-control-center
 bindsym $mod+Shift+Return exec --no-startup-id ~/.local/bin/i3-scratchpad-terminal
 bindsym $mod+F11 exec --no-startup-id ~/.local/bin/i3-cheatsheet-menu
+bindsym $mod+o exec --no-startup-id ~/.local/bin/i3-notes
+bindsym $mod+Shift+o exec --no-startup-id ~/.local/bin/i3-notes quick
 
 # monitor layout menu
 bindsym $mod+p exec --no-startup-id ~/.local/bin/i3-monitor-layout menu

@@ -40,6 +40,7 @@ Secrets are intentionally not tracked. Put machine-local environment values in:
 
 ```sh
 ~/.config/secrets/env
+~/.config/i3/radio-stations.tsv
 ```
 
 Use the template at `secrets/env.example` as a guide. Keep the real file mode private:
@@ -48,6 +49,14 @@ Use the template at `secrets/env.example` as a guide. Keep the real file mode pr
 mkdir -p ~/.config/secrets
 cp ~/.dots/secrets/env.example ~/.config/secrets/env
 chmod 600 ~/.config/secrets/env
+```
+
+Use the template at `radio/stations.tsv.example` for local radio stations:
+
+```bash
+mkdir -p ~/.config/i3
+cp ~/.dots/radio/stations.tsv.example ~/.config/i3/radio-stations.tsv
+chmod 600 ~/.config/i3/radio-stations.tsv
 ```
 
 Rotate any token that was ever pasted into a shell config or terminal transcript.

@@ -1,0 +1,311 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 12 -p radio -fn monospace:size=12 -nb #303446 -nf #c6d0f5 -sb #ca9ee6 -sf #232634"
+stations_file="${I3_RADIO_STATIONS:-$HOME/.config/i3/radio-stations.tsv}"
+script_path=$(readlink -f "$0" 2>/dev/null || printf '%s\n' "$0")
+repo_dir=$(dirname "$(dirname "$(dirname "$script_path")")")
+stations_template="${I3_RADIO_STATIONS_TEMPLATE:-$repo_dir/radio/stations.tsv.example}"
+
+state_root=${XDG_RUNTIME_DIR:-}
+if [ -n "$state_root" ] && mkdir -p "$state_root/i3-radio" 2>/dev/null; then
+        state_dir="$state_root/i3-radio"
+else
+        state_dir="${TMPDIR:-/tmp}/i3-radio-$(id -u)"
+        mkdir -p "$state_dir" 2>/dev/null || true
+fi
+
+pid_file="$state_dir/pid"
+station_file="$state_dir/station"
+url_file="$state_dir/url"
+log_file="$state_dir/mpv.log"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2" >/dev/null 2>&1 || true
+        fi
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -i -p "$prompt" -theme "$theme"
+        else
+                # shellcheck disable=SC2086
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+refresh_status() {
+        pkill -RTMIN+17 -x i3blocks 2>/dev/null || true
+}
+
+ensure_stations_file() {
+        if [ -r "$stations_file" ]; then
+                return
+        fi
+
+        if [ -L "$stations_file" ] && [ ! -e "$stations_file" ]; then
+                rm -f "$stations_file" 2>/dev/null || true
+        fi
+
+        mkdir -p "$(dirname "$stations_file")" || {
+                notify "Radio" "Could not create $(dirname "$stations_file")"
+                exit 1
+        }
+
+        if [ -r "$stations_template" ]; then
+                cp "$stations_template" "$stations_file" || {
+                        notify "Radio" "Could not create $stations_file"
+                        exit 1
+                }
+                chmod 600 "$stations_file" 2>/dev/null || true
+                return
+        fi
+
+        cat >"$stations_file" <<'STATIONS'
+# Copy to ~/.config/i3/radio-stations.tsv and chmod 600 it.
+# This file is local-only. Do not commit private stations.
+#
+# One station per line:
+# Name<TAB>Stream or playlist URL
+
+SomaFM Groove Salad	https://somafm.com/groovesalad.pls
+SomaFM Drone Zone	https://somafm.com/dronezone.pls
+SomaFM Secret Agent	https://somafm.com/secretagent.pls
+STATIONS
+        chmod 600 "$stations_file" 2>/dev/null || true
+}
+
+station_rows() {
+        ensure_stations_file
+        awk -F '\t' '
+                /^[[:space:]]*#/ { next }
+                /^[[:space:]]*$/ { next }
+                NF >= 2 {
+                        name = $1
+                        url = $2
+                        sub(/^[[:space:]]+/, "", name)
+                        sub(/[[:space:]]+$/, "", name)
+                        sub(/^[[:space:]]+/, "", url)
+                        sub(/[[:space:]]+$/, "", url)
+                        if (name != "" && url != "") {
+                                print name "\t" url
+                        }
+                }
+        ' "$stations_file"
+}
+
+station_names() {
+        station_rows | awk -F '\t' '{ print $1 }'
+}
+
+station_url() {
+        target="$1"
+        station_rows | awk -F '\t' -v target="$target" '$1 == target { print $2; exit }'
+}
+
+radio_pid() {
+        [ -r "$pid_file" ] || return 0
+        pid=$(cat "$pid_file")
+
+        case "$pid" in
+                ''|*[!0-9]*)
+                        cleanup_state
+                        return 0
+                        ;;
+        esac
+
+        if kill -0 "$pid" 2>/dev/null && ps -p "$pid" -o comm= 2>/dev/null | grep -Eq '^(mpv|mpv\.com)$'; then
+                printf '%s\n' "$pid"
+        else
+                cleanup_state
+        fi
+}
+
+cleanup_state() {
+        rm -f "$pid_file" "$station_file" "$url_file" 2>/dev/null || true
+}
+
+current_station() {
+        if radio_pid >/dev/null && [ -r "$station_file" ]; then
+                cat "$station_file"
+        fi
+}
+
+require_mpv() {
+        if ! command -v mpv >/dev/null 2>&1; then
+                notify "Radio" "mpv is not installed"
+                exit 1
+        fi
+}
+
+stop_radio() {
+        pid=$(radio_pid)
+        if [ -n "$pid" ]; then
+                kill "$pid" 2>/dev/null || true
+                sleep 0.2
+                kill -9 "$pid" 2>/dev/null || true
+        fi
+
+        cleanup_state
+        refresh_status
+        notify "Radio" "Stopped"
+}
+
+play_station() {
+        station="$1"
+        url="$2"
+
+        require_mpv
+
+        if [ -z "$station" ] || [ -z "$url" ]; then
+                notify "Radio" "Invalid station"
+                exit 1
+        fi
+
+        pid=$(radio_pid)
+        if [ -n "$pid" ]; then
+                kill "$pid" 2>/dev/null || true
+                sleep 0.2
+        fi
+
+        : >"$log_file" 2>/dev/null || true
+
+        mpv \
+                --no-video \
+                --force-window=no \
+                --really-quiet \
+                --title="Radio - $station" \
+                "$url" >"$log_file" 2>&1 &
+
+        pid=$!
+        printf '%s\n' "$pid" >"$pid_file"
+        printf '%s\n' "$station" >"$station_file"
+        printf '%s\n' "$url" >"$url_file"
+
+        sleep 0.4
+        if ! radio_pid >/dev/null; then
+                cleanup_state
+                refresh_status
+                notify "Radio" "Could not start $station. See $log_file"
+                exit 1
+        fi
+
+        refresh_status
+        notify "Radio" "Playing $station"
+}
+
+play_menu() {
+        names=$(station_names)
+        if [ -z "$names" ]; then
+                notify "Radio" "No stations configured"
+                exit 1
+        fi
+
+        selection=$(choose "station" "$names")
+        [ -n "$selection" ] || exit 0
+
+        url=$(station_url "$selection")
+        if [ -z "$url" ]; then
+                notify "Radio" "No URL found for $selection"
+                exit 1
+        fi
+
+        play_station "$selection" "$url"
+}
+
+editor_command() {
+        if [ -n "${I3_RADIO_EDITOR:-}" ]; then
+                printf '%s\n' "$I3_RADIO_EDITOR"
+                return
+        fi
+
+        for editor in nvim vim vi; do
+                if command -v "$editor" >/dev/null 2>&1; then
+                        printf '%s\n' "$editor"
+                        return
+                fi
+        done
+
+        printf '%s\n' "${VISUAL:-${EDITOR:-vi}}"
+}
+
+edit_stations() {
+        ensure_stations_file
+
+        editor=$(editor_command)
+        dir=$(dirname "$stations_file")
+
+        if command -v kitty >/dev/null 2>&1; then
+                # shellcheck disable=SC2016
+                kitty --title "Radio Stations" --directory "$dir" -e sh -lc '
+                        editor=$1
+                        file=$2
+                        # shellcheck disable=SC2086
+                        exec $editor "$file"
+                ' i3-radio-editor "$editor" "$stations_file" >/dev/null 2>&1 &
+                exit 0
+        fi
+
+        # shellcheck disable=SC2086
+        $editor "$stations_file" >/dev/null 2>&1 &
+}
+
+status_message() {
+        station=$(current_station)
+        if [ -n "$station" ]; then
+                message="Playing: $station"
+        else
+                message="Stopped"
+        fi
+
+        printf '%s\n' "$message"
+        notify "Radio" "$message"
+}
+
+main_options() {
+        station=$(current_station)
+        if [ -n "$station" ]; then
+                printf 'Now playing: %s\n' "$station"
+        fi
+
+        cat <<OPTIONS
+Play station
+Stop radio
+Status
+Edit stations
+OPTIONS
+}
+
+menu() {
+        selection=$(choose "radio" "$(main_options)")
+
+        case "$selection" in
+                "Now playing:"*) status_message ;;
+                "Play station") play_menu ;;
+                "Stop radio") stop_radio ;;
+                Status) status_message ;;
+                "Edit stations") edit_stations ;;
+                "") exit 0 ;;
+                *)
+                        notify "Radio" "Unknown option: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+case "${1:-menu}" in
+        menu) menu ;;
+        play) play_menu ;;
+        stop) stop_radio ;;
+        status) status_message ;;
+        edit) edit_stations ;;
+        list) main_options ;;
+        *)
+                printf 'usage: %s [menu|play|stop|status|edit|list]\n' "$0" >&2
+                exit 2
+                ;;
+esac

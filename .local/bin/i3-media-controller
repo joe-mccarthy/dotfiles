@@ -1,0 +1,248 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+dmenu_style="-i -l 12 -p media -fn monospace:size=12 -nb #303446 -nf #c6d0f5 -sb #ca9ee6 -sf #232634"
+
+state_root=${XDG_RUNTIME_DIR:-}
+if [ -n "$state_root" ] && mkdir -p "$state_root/i3-media-controller" 2>/dev/null; then
+        state_dir="$state_root/i3-media-controller"
+else
+        state_dir="${TMPDIR:-/tmp}/i3-media-controller-$(id -u)"
+        mkdir -p "$state_dir" 2>/dev/null || true
+fi
+player_file="$state_dir/player"
+
+notify() {
+        if command -v dunstify >/dev/null 2>&1; then
+                dunstify "$1" "$2" >/dev/null 2>&1 || true
+        fi
+}
+
+refresh_status() {
+        pkill -RTMIN+16 -x i3blocks 2>/dev/null || true
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -i -p "$prompt" -theme "$theme"
+        else
+                # shellcheck disable=SC2086
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+require_playerctl() {
+        if ! command -v playerctl >/dev/null 2>&1; then
+                notify "Media" "playerctl is not installed"
+                exit 1
+        fi
+}
+
+players() {
+        require_playerctl
+        playerctl -l 2>/dev/null || true
+}
+
+require_player() {
+        if [ -z "$(players)" ]; then
+                notify "Media" "No media players found"
+                exit 1
+        fi
+}
+
+selected_player() {
+        [ -r "$player_file" ] || return 0
+
+        player=$(cat "$player_file")
+        [ -n "$player" ] || return 0
+
+        if players | grep -Fx "$player" >/dev/null 2>&1; then
+                printf '%s\n' "$player"
+        else
+                rm -f "$player_file" 2>/dev/null || true
+        fi
+}
+
+active_player() {
+        selected=$(selected_player)
+        if [ -n "$selected" ]; then
+                printf '%s\n' "$selected"
+                return 0
+        fi
+
+        for player in $(players); do
+                status=$(playerctl -p "$player" status 2>/dev/null || true)
+                if [ "$status" = "Playing" ]; then
+                        printf '%s\n' "$player"
+                        return 0
+                fi
+        done
+
+        players | head -n 1
+}
+
+playerctl_selected() {
+        player=$(selected_player)
+
+        if [ -n "$player" ]; then
+                playerctl -p "$player" "$@"
+        else
+                playerctl "$@"
+        fi
+}
+
+run_player_action() {
+        require_playerctl
+        require_player
+
+        if output=$(playerctl_selected "$@" 2>&1); then
+                refresh_status
+                return 0
+        fi
+
+        notify "Media" "${output:-Could not control player}"
+        exit 1
+}
+
+metadata_value() {
+        key="$1"
+        playerctl_selected metadata "$key" 2>/dev/null || true
+}
+
+status_message() {
+        require_playerctl
+        require_player
+
+        if ! status=$(playerctl_selected status 2>&1); then
+                notify "Media" "$status"
+                exit 1
+        fi
+
+        artist=$(metadata_value artist)
+        title=$(metadata_value title)
+        album=$(metadata_value album)
+        player=$(active_player)
+        target=$(selected_player)
+
+        track=${title:-unknown}
+        if [ -n "$artist" ] && [ -n "$title" ]; then
+                track="$artist - $title"
+        elif [ -n "$artist" ]; then
+                track="$artist"
+        fi
+
+        message="Track: $track
+Status: $status
+Player: ${player:-auto}"
+
+        if [ -n "$album" ]; then
+                message="$message
+Album: $album"
+        fi
+
+        if [ -n "$target" ]; then
+                message="$message
+Target: $target"
+        fi
+
+        printf '%s\n' "$message"
+        notify "Media" "$message"
+}
+
+select_player() {
+        require_playerctl
+        available=$(players)
+
+        if [ -z "$available" ]; then
+                notify "Media" "No media players found"
+                exit 1
+        fi
+
+        selection=$(choose "player" "Auto
+$available")
+        [ -n "$selection" ] || exit 0
+
+        case "$selection" in
+                Auto)
+                        rm -f "$player_file" 2>/dev/null || true
+                        refresh_status
+                        notify "Media" "Using active player"
+                        ;;
+                *)
+                        printf '%s\n' "$selection" >"$player_file" || {
+                                notify "Media" "Could not save selected player"
+                                exit 1
+                        }
+                        refresh_status
+                        notify "Media" "Selected $selection"
+                        ;;
+        esac
+}
+
+clear_player() {
+        rm -f "$player_file" 2>/dev/null || true
+        refresh_status
+        notify "Media" "Using active player"
+}
+
+open_audio_menu() {
+        "$HOME/.local/bin/i3-audio-menu"
+}
+
+main_options() {
+        cat <<OPTIONS
+Status
+Play/Pause
+Play
+Pause
+Next
+Previous
+Stop
+Select player
+Clear selected player
+Audio menu
+OPTIONS
+}
+
+menu() {
+        selection=$(choose "media" "$(main_options)")
+
+        case "$selection" in
+                Status) status_message ;;
+                "Play/Pause") run_player_action play-pause ;;
+                Play) run_player_action play ;;
+                Pause) run_player_action pause ;;
+                Next) run_player_action next ;;
+                Previous) run_player_action previous ;;
+                Stop) run_player_action stop ;;
+                "Select player") select_player ;;
+                "Clear selected player") clear_player ;;
+                "Audio menu") open_audio_menu ;;
+                "") exit 0 ;;
+                *)
+                        notify "Media" "Unknown option: $selection"
+                        exit 1
+                        ;;
+        esac
+}
+
+case "${1:-menu}" in
+        menu) menu ;;
+        status) status_message ;;
+        play-pause|toggle) run_player_action play-pause ;;
+        play) run_player_action play ;;
+        pause) run_player_action pause ;;
+        next) run_player_action next ;;
+        previous|prev) run_player_action previous ;;
+        stop) run_player_action stop ;;
+        select) select_player ;;
+        clear) clear_player ;;
+        list) main_options ;;
+        *)
+                printf 'usage: %s [menu|status|play-pause|play|pause|next|previous|stop|select|clear|list]\n' "$0" >&2
+                exit 2
+                ;;
+esac

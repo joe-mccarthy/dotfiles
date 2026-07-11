@@ -4,6 +4,7 @@
 .config/pulse/cookie
 .config/secrets/env
 .config/secrets/*.local
+.config/i3/radio-stations.tsv
 .cache/
 .local/state/
 .vim/.netrwhist

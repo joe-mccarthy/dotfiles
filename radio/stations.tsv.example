@@ -1,0 +1,11 @@
+# Copy to ~/.config/i3/radio-stations.tsv and chmod 600 it.
+# This file is a template only. Do not commit private stations.
+#
+# One station per line:
+# Name<TAB>Stream or playlist URL
+#
+# mpv can play direct MP3/AAC streams and common playlist files such as PLS/M3U.
+
+SomaFM Groove Salad	https://somafm.com/groovesalad.pls
+SomaFM Drone Zone	https://somafm.com/dronezone.pls
+SomaFM Secret Agent	https://somafm.com/secretagent.pls

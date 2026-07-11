@@ -25,6 +25,12 @@ separator_block_width=0
 interval=30
 signal=14
 
+[disk]
+command=~/.local/bin/i3blocks-status disk
+separator=false
+separator_block_width=0
+interval=60
+
 [memory]
 command=~/.local/bin/i3blocks-status memory
 separator=false
@@ -43,12 +49,33 @@ separator=false
 separator_block_width=0
 interval=5
 
+[media]
+command=~/.local/bin/i3blocks-status media
+separator=false
+separator_block_width=0
+interval=5
+signal=16
+
+[radio]
+command=~/.local/bin/i3blocks-status radio
+separator=false
+separator_block_width=0
+interval=5
+signal=17
+
 [volume]
 command=~/.local/bin/i3blocks-status volume
 separator=false
 separator_block_width=0
 interval=10
 signal=12
+
+[pomodoro]
+command=~/.local/bin/i3-pomodoro status
+separator=false
+separator_block_width=0
+interval=1
+signal=15
 
 [time]
 command=~/.local/bin/i3blocks-status time
