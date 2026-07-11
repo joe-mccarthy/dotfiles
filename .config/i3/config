@@ -106,7 +106,7 @@ gaps outer 4px
 smart_gaps off
 
 # start a terminal
-bindsym $mod+Return exec --no-startup-id -/bin/kitty
+bindsym $mod+Return exec --no-startup-id /usr/bin/kitty
 
 # start browser
 bindsym $mod+b exec --no-startup-id qutebrowser
