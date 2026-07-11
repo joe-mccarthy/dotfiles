@@ -15,6 +15,12 @@ microsoft_source="/etc/apt/sources.list.d/vscode.list"
 microsoft_repo="deb [arch=amd64 signed-by=$microsoft_keyring] https://packages.microsoft.com/repos/code stable main"
 qutebrowser_desktop="org.qutebrowser.qutebrowser.desktop"
 thunar_desktop="thunar.desktop"
+kitty_desktop="kitty.desktop"
+loupe_desktop="org.gnome.Loupe.desktop"
+evince_desktop="org.gnome.Evince.desktop"
+code_desktop="code.desktop"
+file_roller_desktop="org.gnome.FileRoller.desktop"
+logind_i3_policy="/etc/systemd/logind.conf.d/90-i3-dotfiles.conf"
 
 catppuccin_flavor="frappe"
 catppuccin_accent="mauve"
@@ -115,6 +121,27 @@ remove_installed_packages() {
 
   printf 'Removing %s packages: %s\n' "$label" "${installed[*]}"
   run_as_root apt-get remove -y "${installed[@]}"
+}
+
+desktop_file_exists() {
+  [ -r "/usr/share/applications/$1" ] || [ -r "$HOME/.local/share/applications/$1" ]
+}
+
+set_xdg_mime_defaults() {
+  desktop_file="$1"
+  label="$2"
+  shift 2
+
+  if ! desktop_file_exists "$desktop_file"; then
+    printf '%s desktop file not found; skipping default app setup: %s\n' "$label" "$desktop_file"
+    return
+  fi
+
+  if command -v xdg-mime >/dev/null 2>&1; then
+    for mime_type in "$@"; do
+      xdg-mime default "$desktop_file" "$mime_type"
+    done
+  fi
 }
 
 print_system_info() {
@@ -265,6 +292,28 @@ ensure_microsoft_code_repo() {
   fi
 }
 
+configure_logind_power_policy() {
+  if ! command -v systemctl >/dev/null 2>&1 || [ ! -d /etc/systemd ]; then
+    return
+  fi
+
+  policy_file=$(mktemp)
+  cat > "$policy_file" <<LOGIND
+[Login]
+HandleLidSwitch=suspend
+HandleLidSwitchExternalPower=suspend
+HandleLidSwitchDocked=ignore
+HoldoffTimeoutSec=30s
+LOGIND
+
+  run_as_root install -d -m 0755 "$(dirname "$logind_i3_policy")"
+  run_as_root install -m 0644 "$policy_file" "$logind_i3_policy"
+  rm -f "$policy_file"
+
+  printf 'Installed i3 logind lid policy: %s\n' "$logind_i3_policy"
+  printf 'Reboot or run sudo systemctl restart systemd-logind to apply it.\n'
+}
+
 replace_symlink() {
   source_path="$1"
   link_path="$2"
@@ -371,8 +420,7 @@ KVANTUM
 }
 
 configure_default_browser() {
-  if [ ! -r "/usr/share/applications/$qutebrowser_desktop" ] \
-    && [ ! -r "$HOME/.local/share/applications/$qutebrowser_desktop" ]; then
+  if ! desktop_file_exists "$qutebrowser_desktop"; then
     printf 'qutebrowser desktop file not found; skipping default browser setup.\n'
     return
   fi
@@ -391,17 +439,70 @@ configure_default_browser() {
 }
 
 configure_default_file_manager() {
-  if [ ! -r "/usr/share/applications/$thunar_desktop" ] \
-    && [ ! -r "$HOME/.local/share/applications/$thunar_desktop" ]; then
-    printf 'Thunar desktop file not found; skipping default file manager setup.\n'
-    return
-  fi
+  set_xdg_mime_defaults "$thunar_desktop" "Thunar" \
+    inode/directory \
+    application/x-gnome-saved-search
+}
 
-  if command -v xdg-mime >/dev/null 2>&1; then
-    xdg-mime default "$thunar_desktop" \
-      inode/directory \
-      application/x-gnome-saved-search
-  fi
+configure_default_terminal() {
+  set_xdg_mime_defaults "$kitty_desktop" "kitty" \
+    x-scheme-handler/terminal
+}
+
+configure_default_image_viewer() {
+  set_xdg_mime_defaults "$loupe_desktop" "Loupe" \
+    image/avif \
+    image/bmp \
+    image/gif \
+    image/heic \
+    image/jpeg \
+    image/jxl \
+    image/png \
+    image/svg+xml \
+    image/svg+xml-compressed \
+    image/tiff \
+    image/webp
+}
+
+configure_default_pdf_viewer() {
+  set_xdg_mime_defaults "$evince_desktop" "Evince" \
+    application/pdf
+}
+
+configure_default_text_editor() {
+  set_xdg_mime_defaults "$code_desktop" "VS Code" \
+    application/json \
+    inode/x-empty \
+    text/markdown \
+    text/plain \
+    text/x-shellscript
+}
+
+configure_default_archive_manager() {
+  set_xdg_mime_defaults "$file_roller_desktop" "File Roller" \
+    application/gzip \
+    application/x-7z-compressed \
+    application/x-bzip \
+    application/x-bzip-compressed-tar \
+    application/x-compressed-tar \
+    application/x-gzip \
+    application/x-rar \
+    application/x-rar-compressed \
+    application/x-tar \
+    application/x-xz \
+    application/x-xz-compressed-tar \
+    application/zip \
+    application/zstd
+}
+
+configure_default_apps() {
+  configure_default_browser
+  configure_default_file_manager
+  configure_default_terminal
+  configure_default_image_viewer
+  configure_default_pdf_viewer
+  configure_default_text_editor
+  configure_default_archive_manager
 }
 
 prepare_stow_targets() {
@@ -437,6 +538,7 @@ fi
 
 if [ "$install_deps" -eq 1 ]; then
   install_apt_dependencies
+  configure_logind_power_policy
 fi
 
 if [ "$run_stow" -eq 1 ]; then
@@ -452,8 +554,7 @@ if [ -x "$HOME/.local/bin/i3-apply-theme" ]; then
   "$HOME/.local/bin/i3-apply-theme"
 fi
 
-configure_default_browser
-configure_default_file_manager
+configure_default_apps
 
 cat <<POST_INSTALL
 

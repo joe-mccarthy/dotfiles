@@ -40,10 +40,14 @@ thunar
 thunar-volman
 thunar-archive-plugin
 tumbler
+loupe
+evince
+file-roller
 x11-xkb-utils
 x11-xserver-utils
 xss-lock
 xsettingsd
+upower
 gnome-themes-extra
 adwaita-qt
 adwaita-qt6

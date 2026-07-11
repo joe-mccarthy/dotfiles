@@ -1,0 +1,109 @@
+#!/bin/sh
+
+warn_at="${I3_BATTERY_WARN_PERCENT:-20}"
+critical_at="${I3_BATTERY_CRITICAL_PERCENT:-12}"
+suspend_at="${I3_BATTERY_SUSPEND_PERCENT:-7}"
+check_interval="${I3_BATTERY_CHECK_INTERVAL:-60}"
+state_root="${XDG_RUNTIME_DIR:-}"
+
+if [ -n "$state_root" ] && mkdir -p "$state_root/i3-low-battery" 2>/dev/null; then
+        state_dir="$state_root/i3-low-battery"
+else
+        state_dir="${TMPDIR:-/tmp}/i3-low-battery-$(id -u)"
+        mkdir -p "$state_dir"
+fi
+
+notify_battery() {
+        urgency="$1"
+        summary="$2"
+        body="$3"
+
+        if command -v notify-send >/dev/null 2>&1; then
+                notify-send -a i3 -u "$urgency" "$summary" "$body"
+        fi
+}
+
+read_battery_upower() {
+        command -v upower >/dev/null 2>&1 || return 1
+
+        battery=$(upower -e 2>/dev/null | awk '/battery/ { print; exit }')
+        [ -n "$battery" ] || return 1
+
+        upower -i "$battery" 2>/dev/null | awk '
+                /state:/ { state = $2 }
+                /percentage:/ {
+                        gsub(/%/, "", $2)
+                        pct = int($2)
+                }
+                END {
+                        if (state != "" && pct != "") {
+                                print state, pct
+                        }
+                }
+        '
+}
+
+read_battery_sysfs() {
+        for battery in /sys/class/power_supply/BAT*; do
+                if [ ! -r "$battery/status" ] || [ ! -r "$battery/capacity" ]; then
+                        continue
+                fi
+
+                state=$(tr '[:upper:]' '[:lower:]' < "$battery/status")
+                pct=$(cat "$battery/capacity")
+                printf '%s %s\n' "$state" "$pct"
+                return 0
+        done
+
+        return 1
+}
+
+read_battery() {
+        read_battery_upower || read_battery_sysfs
+}
+
+reset_markers() {
+        rm -f "$state_dir/warned" "$state_dir/critical" "$state_dir/suspended"
+}
+
+while :; do
+        battery_state=$(read_battery)
+
+        if [ -z "$battery_state" ]; then
+                exit 0
+        fi
+
+        state=$(printf '%s\n' "$battery_state" | awk '{ print tolower($1) }')
+        pct=$(printf '%s\n' "$battery_state" | awk '{ print int($2) }')
+
+        if [ "$state" != "discharging" ]; then
+                reset_markers
+                sleep "$check_interval"
+                continue
+        fi
+
+        if [ "$pct" -le "$suspend_at" ]; then
+                if [ ! -e "$state_dir/suspended" ]; then
+                        touch "$state_dir/suspended"
+                        notify_battery critical "Battery critical" "Suspending at ${pct}%."
+                        sleep 3
+                        "$HOME/.local/bin/i3-lock-screen" suspend
+                fi
+        elif [ "$pct" -le "$critical_at" ]; then
+                rm -f "$state_dir/suspended"
+                if [ ! -e "$state_dir/critical" ]; then
+                        touch "$state_dir/critical"
+                        notify_battery critical "Battery low" "${pct}% remaining. Connect power soon."
+                fi
+        elif [ "$pct" -le "$warn_at" ]; then
+                rm -f "$state_dir/critical" "$state_dir/suspended"
+                if [ ! -e "$state_dir/warned" ]; then
+                        touch "$state_dir/warned"
+                        notify_battery normal "Battery low" "${pct}% remaining."
+                fi
+        else
+                reset_markers
+        fi
+
+        sleep "$check_interval"
+done

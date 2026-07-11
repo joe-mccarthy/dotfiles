@@ -1,0 +1,11 @@
+#!/bin/sh
+
+lock_after_seconds="${I3_IDLE_LOCK_SECONDS:-600}"
+dpms_after_seconds="${I3_IDLE_DPMS_SECONDS:-900}"
+
+if command -v xset >/dev/null 2>&1; then
+        xset s "$lock_after_seconds" 30
+        xset +dpms
+        xset dpms 0 0 "$dpms_after_seconds"
+fi
+

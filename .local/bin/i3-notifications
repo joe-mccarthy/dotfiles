@@ -1,0 +1,220 @@
+#!/bin/sh
+
+theme="$HOME/.config/rofi/i3-launcher.rasi"
+theme_env="$HOME/.config/i3/theme.env"
+dmenu_style="-i -l 8 -p notifications -fn monospace:size=12 -nb #303446 -nf #c6d0f5 -sb #ca9ee6 -sf #232634"
+
+if [ -r "$theme_env" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$theme_env"
+        set +a
+fi
+
+good="${CTP_GREEN:-#a6d189}"
+muted="${CTP_OVERLAY0:-#737994}"
+accent="${CTP_MAUVE:-#ca9ee6}"
+warn="${CTP_YELLOW:-#e5c890}"
+
+refresh_bar() {
+        pkill -USR1 -x i3status 2>/dev/null || true
+}
+
+notify_user() {
+        if command -v notify-send >/dev/null 2>&1; then
+                notify-send -a i3 "$1" "$2"
+        fi
+}
+
+count() {
+        dunstctl count "$1" 2>/dev/null || printf '0\n'
+}
+
+is_paused() {
+        dunstctl is-paused 2>/dev/null || printf 'false\n'
+}
+
+json_block() {
+        name="$1"
+        color="$2"
+        text="$3"
+
+        if command -v jq >/dev/null 2>&1; then
+                jq -cn --arg name "$name" --arg color "$color" --arg text "$text" \
+                        '{name:$name,color:$color,markup:"none",full_text:$text}'
+        else
+                printf '{"name":"%s","color":"%s","markup":"none","full_text":"%s"}' "$name" "$color" "$text"
+        fi
+}
+
+status_json() {
+        paused=$(is_paused)
+        displayed=$(count displayed)
+        waiting=$(count waiting)
+        history=$(count history)
+
+        case "$paused" in
+                true)
+                        json_block notifications "$warn" "DND ${waiting}"
+                        ;;
+                *)
+                        if [ "$displayed" -gt 0 ] 2>/dev/null; then
+                                json_block notifications "$accent" "NOT ${displayed}"
+                        elif [ "$waiting" -gt 0 ] 2>/dev/null; then
+                                json_block notifications "$warn" "NOT ${waiting} queued"
+                        elif [ "$history" -gt 0 ] 2>/dev/null; then
+                                json_block notifications "$muted" "NOT ${history}h"
+                        else
+                                json_block notifications "$good" "NOT clear"
+                        fi
+                        ;;
+        esac
+}
+
+choose() {
+        prompt="$1"
+        options="$2"
+
+        if command -v rofi >/dev/null 2>&1; then
+                printf '%s\n' "$options" | rofi -dmenu -i -p "$prompt" -theme "$theme"
+        else
+                # shellcheck disable=SC2086
+                printf '%s\n' "$options" | dmenu $dmenu_style
+        fi
+}
+
+history_menu() {
+        if ! command -v jq >/dev/null 2>&1; then
+                notify_user "Notifications" "jq is required for the history menu."
+                exit 1
+        fi
+
+        history_json=$(dunstctl history 2>/dev/null) || {
+                notify_user "Notifications" "Dunst history is unavailable."
+                exit 1
+        }
+
+        entries=$(printf '%s\n' "$history_json" | jq -r '
+                .data[][]? |
+                [
+                        (.id.data | tostring),
+                        (.appname.data // "app"),
+                        (.summary.data // ""),
+                        (.body.data // "")
+                ] | @tsv
+        ' | awk -F '\t' '
+                {
+                        gsub(/[[:space:]]+/, " ", $3)
+                        gsub(/[[:space:]]+/, " ", $4)
+                        printf "%s\t%s: %s %s\n", $1, $2, $3, $4
+                }
+        ')
+
+        if [ -z "$entries" ]; then
+                notify_user "Notifications" "History is empty."
+                exit 0
+        fi
+
+        selection=$(choose "history" "$entries")
+        [ -n "$selection" ] || exit 0
+
+        id=$(printf '%s\n' "$selection" | awk -F '\t' '{ print $1 }')
+        [ -n "$id" ] || exit 0
+
+        dunstctl history-pop "$id" >/dev/null 2>&1 || notify_user "Notifications" "Could not restore notification $id."
+        refresh_bar
+}
+
+menu() {
+        paused=$(is_paused)
+        displayed=$(count displayed)
+        waiting=$(count waiting)
+        history=$(count history)
+
+        if [ "$paused" = "true" ]; then
+                pause_option="Resume notifications"
+        else
+                pause_option="Pause notifications"
+        fi
+
+        selection=$(choose "notifications" "$pause_option
+History menu (${history})
+Pop latest history
+Close current (${displayed})
+Close all
+Clear history
+Open actions
+Reload dunst")
+
+        case "$selection" in
+                "Pause notifications"|"Resume notifications")
+                        dunstctl set-paused toggle
+                        ;;
+                "History menu "*)
+                        history_menu
+                        ;;
+                "Pop latest history")
+                        dunstctl history-pop
+                        ;;
+                "Close current "*)
+                        dunstctl close
+                        ;;
+                "Close all")
+                        dunstctl close-all
+                        ;;
+                "Clear history")
+                        dunstctl history-clear
+                        ;;
+                "Open actions")
+                        dunstctl context
+                        ;;
+                "Reload dunst")
+                        dunstctl reload
+                        ;;
+                "")
+                        exit 0
+                        ;;
+                *)
+                        notify_user "Notifications" "Unknown action: $selection"
+                        exit 1
+                        ;;
+        esac
+
+        refresh_bar
+}
+
+case "${1:-menu}" in
+        status-json)
+                status_json
+                ;;
+        close)
+                dunstctl close
+                refresh_bar
+                ;;
+        close-all)
+                dunstctl close-all
+                refresh_bar
+                ;;
+        history-pop)
+                dunstctl history-pop
+                refresh_bar
+                ;;
+        history-menu)
+                history_menu
+                ;;
+        clear-history)
+                dunstctl history-clear
+                refresh_bar
+                ;;
+        toggle-pause)
+                dunstctl set-paused toggle
+                refresh_bar
+                ;;
+        menu)
+                menu
+                ;;
+        *)
+                printf 'usage: %s [status-json|close|close-all|history-pop|history-menu|clear-history|toggle-pause|menu]\n' "$0" >&2
+                exit 2
+                ;;
+esac

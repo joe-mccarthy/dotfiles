@@ -11,10 +11,15 @@ fi
 
 export XDG_CURRENT_DESKTOP=i3
 export DESKTOP_SESSION=i3
+export BROWSER="${BROWSER:-qutebrowser}"
+export TERMINAL="${TERMINAL:-kitty}"
+export EDITOR="${EDITOR:-nvim}"
+export VISUAL="${VISUAL:-code}"
 
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then
         dbus-update-activation-environment --systemd \
                 DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP DESKTOP_SESSION \
+                BROWSER TERMINAL EDITOR VISUAL \
                 GTK_THEME QT_STYLE_OVERRIDE QT_QPA_PLATFORMTHEME XCURSOR_THEME XCURSOR_SIZE >/dev/null 2>&1 || true
 fi
 
@@ -26,4 +31,13 @@ fi
 
 if command -v xdg-user-dirs-update >/dev/null 2>&1; then
         xdg-user-dirs-update >/dev/null 2>&1 || true
+fi
+
+if [ -x "$HOME/.local/bin/i3-power-policy" ]; then
+        "$HOME/.local/bin/i3-power-policy" >/dev/null 2>&1 || true
+fi
+
+if [ -x "$HOME/.local/bin/i3-low-battery-monitor" ]; then
+        pkill -f "[i]3-low-battery-monitor" 2>/dev/null || true
+        "$HOME/.local/bin/i3-low-battery-monitor" >/dev/null 2>&1 &
 fi

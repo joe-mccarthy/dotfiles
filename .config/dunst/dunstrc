@@ -32,7 +32,7 @@
     progress_bar_corner_radius = 4
 
     enable_recursive_icon_lookup = true
-    icon_theme = Adwaita
+    icon_theme = Papirus-Dark
     icon_position = left
     min_icon_size = 32
     max_icon_size = 48
@@ -57,9 +57,9 @@
 [urgency_low]
     background = "#292c3c"
     foreground = "#a5adce"
-    frame_color = "#51576d"
+    frame_color = "#414559"
     highlight = "#81c8be"
-    timeout = 5
+    timeout = 4
     default_icon = dialog-information
 
 [urgency_normal]
@@ -72,10 +72,10 @@
     default_icon = dialog-information
 
 [urgency_critical]
-    background = "#303446"
-    foreground = "#f2d5cf"
-    frame_color = "#e78284"
-    highlight = "#e78284"
+    background = "#e78284"
+    foreground = "#232634"
+    frame_color = "#f2d5cf"
+    highlight = "#232634"
     timeout = 0
     override_pause_level = 60
     default_icon = dialog-warning
