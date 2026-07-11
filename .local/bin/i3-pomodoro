@@ -168,7 +168,7 @@ current_display() {
 status_block() {
         handle_click
         current_display
-        printf ' | %s\n\n%s\n' "$display_text" "$display_color"
+        printf ' | %s\n | %s\n%s\n' "$display_text" "$label" "$display_color"
 }
 
 human_status() {

@@ -27,14 +27,15 @@ fi
 
 emit() {
         full_text="$1"
-        color="${3:-${2:-$text}}"
+        short_text="${2:-$full_text}"
+        color="${3:-$text}"
 
         case "$block_name" in
                 notifications)
-                        printf '%s\n\n%s\n' "$full_text" "$color"
+                        printf '%s\n%s\n%s\n' "$full_text" "$short_text" "$color"
                         ;;
                 *)
-                        printf ' | %s\n\n%s\n' "$full_text" "$color"
+                        printf ' | %s\n | %s\n%s\n' "$full_text" "$short_text" "$color"
                         ;;
         esac
 }
