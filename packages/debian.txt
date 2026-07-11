@@ -35,6 +35,7 @@ blueman
 wireplumber
 pipewire-pulse
 pavucontrol
+qutebrowser
 x11-xkb-utils
 x11-xserver-utils
 xss-lock

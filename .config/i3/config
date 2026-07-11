@@ -108,6 +108,9 @@ smart_gaps off
 # start a terminal
 bindsym $mod+Return exec --no-startup-id ~/.local/bin/kitty
 
+# start browser
+bindsym $mod+b exec --no-startup-id qutebrowser
+
 # kill focused window
 bindsym $mod+Shift+q kill
 

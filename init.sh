@@ -13,6 +13,7 @@ catppuccin_only=0
 microsoft_keyring="/usr/share/keyrings/microsoft.gpg"
 microsoft_source="/etc/apt/sources.list.d/vscode.list"
 microsoft_repo="deb [arch=amd64 signed-by=$microsoft_keyring] https://packages.microsoft.com/repos/code stable main"
+qutebrowser_desktop="org.qutebrowser.qutebrowser.desktop"
 
 catppuccin_flavor="frappe"
 catppuccin_accent="mauve"
@@ -94,6 +95,27 @@ install_missing_packages() {
   run_as_root apt-get install -y "${missing[@]}"
 }
 
+remove_installed_packages() {
+  label="$1"
+  shift
+
+  installed=()
+
+  for package in "$@"; do
+    if package_installed "$package"; then
+      installed+=("$package")
+    fi
+  done
+
+  if [ "${#installed[@]}" -eq 0 ]; then
+    printf '%s packages are already removed.\n' "$label"
+    return
+  fi
+
+  printf 'Removing %s packages: %s\n' "$label" "${installed[*]}"
+  run_as_root apt-get remove -y "${installed[@]}"
+}
+
 print_system_info() {
   if [ -r /etc/os-release ]; then
     # shellcheck disable=SC1091
@@ -156,6 +178,7 @@ install_apt_dependencies() {
 
   ensure_i3_desktop
   ensure_microsoft_code_repo
+  remove_installed_packages "Firefox" firefox firefox-esr
 
   mapfile -t packages < <(read_packages)
   install_missing_packages "apt dependency" "${packages[@]}"
@@ -346,11 +369,48 @@ KVANTUM
   fi
 }
 
+configure_default_browser() {
+  if [ ! -r "/usr/share/applications/$qutebrowser_desktop" ] \
+    && [ ! -r "$HOME/.local/share/applications/$qutebrowser_desktop" ]; then
+    printf 'qutebrowser desktop file not found; skipping default browser setup.\n'
+    return
+  fi
+
+  if command -v xdg-mime >/dev/null 2>&1; then
+    xdg-mime default "$qutebrowser_desktop" \
+      text/html \
+      application/xhtml+xml \
+      x-scheme-handler/http \
+      x-scheme-handler/https
+  fi
+
+  if command -v xdg-settings >/dev/null 2>&1; then
+    xdg-settings set default-web-browser "$qutebrowser_desktop" >/dev/null 2>&1 || true
+  fi
+}
+
+prepare_stow_targets() {
+  qutebrowser_target="$target_dir/.config/qutebrowser"
+  qutebrowser_source="$dotfiles_dir/.config/qutebrowser"
+
+  if [ -L "$qutebrowser_target" ]; then
+    if [ "$(readlink -f "$qutebrowser_target")" = "$qutebrowser_source" ]; then
+      unlink "$qutebrowser_target"
+    else
+      printf 'Warning: %s is a symlink not managed by this repo; leaving it alone.\n' "$qutebrowser_target" >&2
+      return
+    fi
+  fi
+
+  mkdir -p "$qutebrowser_target"
+}
+
 print_system_info
 
 if [ "$catppuccin_only" -eq 1 ]; then
   install_catppuccin_apt_dependencies
   if [ "$run_stow" -eq 1 ]; then
+    prepare_stow_targets
     stow -d "$dotfiles_dir" -t "$target_dir" --restow .
   fi
   install_catppuccin_user_themes
@@ -365,6 +425,7 @@ if [ "$install_deps" -eq 1 ]; then
 fi
 
 if [ "$run_stow" -eq 1 ]; then
+  prepare_stow_targets
   stow -d "$dotfiles_dir" -t "$target_dir" --restow .
 fi
 
@@ -375,6 +436,8 @@ fi
 if [ -x "$HOME/.local/bin/i3-apply-theme" ]; then
   "$HOME/.local/bin/i3-apply-theme"
 fi
+
+configure_default_browser
 
 cat <<POST_INSTALL
 

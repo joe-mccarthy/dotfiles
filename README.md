@@ -41,7 +41,7 @@ The i3 desktop config now lives in this repo:
 - `.config/picom/` for compositor settings
 - `.local/bin/i3-*` and `.local/bin/i3status-wrapper` for helper scripts
 
-The current setup includes curated i3 autostart, rofi launcher modes, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3status display. The desktop shell, launcher, notifications, terminal, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
+The current setup includes curated i3 autostart, rofi launcher modes, qutebrowser, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3status display. The desktop shell, launcher, notifications, terminal, browser furniture, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
 
 After the first install from GNOME, log out, select `i3` from the login screen session chooser, then log back in.
 
@@ -52,6 +52,8 @@ Monitor layouts are handled by `.local/bin/i3-monitor-layout`. Use `$mod+p` or t
 Network and Bluetooth helpers are handled by `.local/bin/i3-network-menu` and `.local/bin/i3-bluetooth-menu`. Use `$mod+Shift+w` for network actions and `$mod+Shift+b` for Bluetooth actions.
 
 Audio devices are handled by `.local/bin/i3-audio-menu`. Use `$mod+Shift+a` to switch output/input devices, mute, adjust volume, open `pavucontrol`, or show current audio status.
+
+qutebrowser is the managed browser and default handler for HTTP, HTTPS, and HTML. Use `$mod+b` to open it. Its chrome is themed with Catppuccin Frappe and JetBrains Mono, while web page fonts are left to the sites themselves.
 
 Startup is intentionally curated by `.local/bin/i3-autostart` instead of running every GNOME autostart entry. It applies GTK/Qt theme environment, starts XSettings, and updates user dirs. Network and Bluetooth are controlled through the rofi helpers, so no network or Bluetooth tray icons are started.
 
