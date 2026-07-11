@@ -41,7 +41,7 @@ The i3 desktop config now lives in this repo:
 - `.config/picom/` for compositor settings
 - `.local/bin/i3-*` and `.local/bin/i3status-wrapper` for helper scripts
 
-The current setup includes curated i3 autostart, rofi launcher modes, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3status display.
+The current setup includes curated i3 autostart, rofi launcher modes, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3status display. The desktop shell, launcher, notifications, terminal, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
 
 After the first install from GNOME, log out, select `i3` from the login screen session chooser, then log back in.
 
@@ -55,13 +55,19 @@ Audio devices are handled by `.local/bin/i3-audio-menu`. Use `$mod+Shift+a` to s
 
 Startup is intentionally curated by `.local/bin/i3-autostart` instead of running every GNOME autostart entry. It applies GTK/Qt theme environment, starts XSettings, and updates user dirs. Network and Bluetooth are controlled through the rofi helpers, so no network or Bluetooth tray icons are started.
 
-GTK and Qt app styling uses Adwaita dark settings and JetBrains Mono in `.config/gtk-3.0/`, `.config/gtk-4.0/`, `.gtkrc-2.0`, `.config/xsettingsd/`, `.config/i3/theme.env`, and `.xsessionrc`. Rofi and kitty keep their custom styling.
+GTK and Qt app styling uses Catppuccin Frappe, JetBrains Mono, qt5ct/qt6ct, and Kvantum. `init.sh` can install the Catppuccin GTK theme and Qt theme files into your user config:
+
+```sh
+./init.sh --catppuccin-only
+```
+
+The shared theme env records the Catppuccin Frappe palette for scripts that can source it, while rofi, kitty, dunst, i3, i3status, and Starship keep explicit Frappe colours in their own config formats.
 
 Keyboard layout switching is handled by `.local/bin/i3-keyboard-layout`. Use `$mod+Shift+i` to switch between the UK laptop layout and US external keyboard layout. The selected layout is saved in `.config/i3/keyboard-layout` and reapplied on i3 reload.
 
 ## Terminal Setup
 
-Kitty uses JetBrains Mono, a tinted wallpaper background, powerline tabs, split-window keybindings, and terminal-friendly clipboard mappings. `Ctrl+c` copies selected text or interrupts when nothing is selected, and `Ctrl+v` pastes from the clipboard. Bash picks up terminal tools from `.bash_aliases`, including Starship, fzf, zoxide, direnv, eza, bat, btop, duf, procs, neovim, lazygit, and git shortcuts when those commands are installed.
+Kitty uses JetBrains Mono, Catppuccin Frappe colours, a tinted wallpaper background, powerline tabs, split-window keybindings, and terminal-friendly clipboard mappings. `Ctrl+c` copies selected text or interrupts when nothing is selected, and `Ctrl+v` pastes from the clipboard. Bash picks up terminal tools from `.bash_aliases`, including Starship, fzf, zoxide, direnv, eza, bat, btop, duf, procs, neovim, lazygit, and git shortcuts when those commands are installed.
 
 VS Code is installed through apt as the `code` package. `init.sh` configures the Microsoft apt repository automatically before installing packages.
 

@@ -14,11 +14,41 @@ set $mod Mod4
 # Font for window titles. The bar uses its own font below.
 font pango:JetBrains Mono 10
 
+# Catppuccin Frappe palette.
+set $ctp_rosewater #f2d5cf
+set $ctp_pink      #f4b8e4
+set $ctp_mauve     #ca9ee6
+set $ctp_red       #e78284
+set $ctp_peach     #ef9f76
+set $ctp_yellow    #e5c890
+set $ctp_green     #a6d189
+set $ctp_teal      #81c8be
+set $ctp_blue      #8caaee
+set $ctp_lavender  #babbf1
+set $ctp_text      #c6d0f5
+set $ctp_subtext1  #b5bfe2
+set $ctp_subtext0  #a5adce
+set $ctp_overlay1  #838ba7
+set $ctp_overlay0  #737994
+set $ctp_surface1  #51576d
+set $ctp_surface0  #414559
+set $ctp_base      #303446
+set $ctp_mantle    #292c3c
+set $ctp_crust     #232634
+
 # Window titlebar spacing.
 title_align center
 for_window [all] title_format "  %title  "
 for_window [all] title_window_icon on
 for_window [all] title_window_icon padding 6
+
+# Window colours: border, background, text, indicator, child border.
+client.focused          $ctp_mauve    $ctp_base   $ctp_text     $ctp_mauve    $ctp_mauve
+client.focused_inactive $ctp_surface0 $ctp_mantle $ctp_subtext1 $ctp_surface0 $ctp_surface0
+client.unfocused        $ctp_surface0 $ctp_mantle $ctp_overlay1 $ctp_surface0 $ctp_surface0
+client.urgent           $ctp_red      $ctp_base   $ctp_text     $ctp_red      $ctp_red
+client.placeholder      $ctp_surface0 $ctp_mantle $ctp_overlay0 $ctp_surface0 $ctp_surface0
+client.background       $ctp_base
 
 # This font is widely installed, provides lots of unicode glyphs, right-to-left
 # text rendering and scalability on retina/hidpi displays (thanks to pango).
@@ -263,14 +293,14 @@ bar {
         separator_symbol " | "
 
         colors {
-                background #1d2021
-                statusline #ebdbb2
-                separator #665c54
+                background $ctp_mantle
+                statusline $ctp_text
+                separator $ctp_overlay0
 
-                focused_workspace  #8ec07c #8ec07c #1d2021
-                active_workspace   #504945 #504945 #ebdbb2
-                inactive_workspace #282828 #282828 #a89984
-                urgent_workspace   #fb4934 #fb4934 #1d2021
-                binding_mode       #fabd2f #fabd2f #1d2021
+                focused_workspace  $ctp_mauve    $ctp_mauve    $ctp_crust
+                active_workspace   $ctp_surface1 $ctp_surface1 $ctp_text
+                inactive_workspace $ctp_mantle   $ctp_mantle   $ctp_subtext0
+                urgent_workspace   $ctp_red      $ctp_red      $ctp_crust
+                binding_mode       $ctp_peach    $ctp_peach    $ctp_crust
         }
 }

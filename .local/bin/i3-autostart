@@ -15,7 +15,7 @@ export DESKTOP_SESSION=i3
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then
         dbus-update-activation-environment --systemd \
                 DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP DESKTOP_SESSION \
-                GTK_THEME QT_STYLE_OVERRIDE XCURSOR_THEME XCURSOR_SIZE >/dev/null 2>&1 || true
+                GTK_THEME QT_STYLE_OVERRIDE QT_QPA_PLATFORMTHEME XCURSOR_THEME XCURSOR_SIZE >/dev/null 2>&1 || true
 fi
 
 if command -v gnome-keyring-daemon >/dev/null 2>&1; then

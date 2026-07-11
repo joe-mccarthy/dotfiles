@@ -1,6 +1,16 @@
 #!/bin/sh
 
-lock_color="1d2021"
+theme_env="$HOME/.config/i3/theme.env"
+
+if [ -r "$theme_env" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$theme_env"
+        set +a
+fi
+
+lock_color="${CTP_BASE:-#303446}"
+lock_color="${lock_color#\#}"
 
 lock_screen() {
         exec i3lock -n -e -f -c "$lock_color"

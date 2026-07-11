@@ -13,14 +13,14 @@ configuration {
 }
 
 * {
-        bg: #1d2021;
-        panel: #282828;
-        panel-alt: #3c3836;
-        fg: #ebdbb2;
-        muted: #a89984;
-        accent: #8ec07c;
-        urgent: #fb4934;
-        border: #504945;
+        bg: #303446;
+        panel: #414559;
+        panel-alt: #51576d;
+        fg: #c6d0f5;
+        muted: #a5adce;
+        accent: #ca9ee6;
+        urgent: #e78284;
+        border: #626880;
 
         background-color: transparent;
         text-color: @fg;
@@ -86,7 +86,7 @@ element alternate.normal {
 
 element selected.normal {
         background-color: @accent;
-        text-color: @bg;
+        text-color: #232634;
 }
 
 element urgent.normal {
@@ -95,7 +95,7 @@ element urgent.normal {
 
 element selected.urgent {
         background-color: @urgent;
-        text-color: @bg;
+        text-color: #232634;
 }
 
 element-icon {

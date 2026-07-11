@@ -9,15 +9,16 @@ if [ -r "$theme_env" ]; then
         set +a
 fi
 
-gtk_theme_name="${GTK_THEME_NAME:-Adwaita-dark}"
+gtk_theme_name="${GTK_THEME_NAME:-catppuccin-frappe-mauve-standard+default}"
 icon_theme_name="${GTK_ICON_THEME_NAME:-Adwaita}"
 font_name="${GTK_FONT_NAME:-JetBrains Mono 10}"
 monospace_font_name="${GTK_MONOSPACE_FONT_NAME:-JetBrains Mono 10}"
 cursor_theme_name="${GTK_CURSOR_THEME_NAME:-Adwaita}"
 cursor_theme_size="${GTK_CURSOR_THEME_SIZE:-24}"
 
-export GTK_THEME="${GTK_THEME:-Adwaita:dark}"
-export QT_STYLE_OVERRIDE="${QT_STYLE_OVERRIDE:-Adwaita-Dark}"
+export GTK_THEME="${GTK_THEME:-$gtk_theme_name}"
+export QT_STYLE_OVERRIDE="${QT_STYLE_OVERRIDE:-kvantum}"
+export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-qt5ct}"
 export XCURSOR_THEME="${XCURSOR_THEME:-$cursor_theme_name}"
 export XCURSOR_SIZE="${XCURSOR_SIZE:-$cursor_theme_size}"
 export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-i3}"
@@ -36,7 +37,7 @@ fi
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then
         dbus-update-activation-environment --systemd \
                 XDG_CURRENT_DESKTOP DESKTOP_SESSION \
-                GTK_THEME QT_STYLE_OVERRIDE XCURSOR_THEME XCURSOR_SIZE >/dev/null 2>&1 || true
+                GTK_THEME QT_STYLE_OVERRIDE QT_QPA_PLATFORMTHEME XCURSOR_THEME XCURSOR_SIZE >/dev/null 2>&1 || true
 fi
 
 if command -v xrdb >/dev/null 2>&1; then

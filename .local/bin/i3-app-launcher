@@ -10,10 +10,10 @@ if [ -r "$theme_env" ]; then
 fi
 
 font="JetBrains Mono:size=12"
-background="#1d2021"
-foreground="#ebdbb2"
-selected_background="#8ec07c"
-selected_foreground="#1d2021"
+background="${CTP_BASE:-#303446}"
+foreground="${CTP_TEXT:-#c6d0f5}"
+selected_background="${CTP_MAUVE:-#ca9ee6}"
+selected_foreground="${CTP_CRUST:-#232634}"
 lines="14"
 rofi_theme="$HOME/.config/rofi/i3-launcher.rasi"
 

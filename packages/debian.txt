@@ -7,6 +7,7 @@ xdg-utils
 ca-certificates
 curl
 gpg
+python3
 
 # i3 desktop
 i3
@@ -41,6 +42,10 @@ xsettingsd
 gnome-themes-extra
 adwaita-qt
 adwaita-qt6
+qt5ct
+qt6ct
+qt5-style-kvantum
+qt6-style-kvantum
 
 # Terminal and development
 code

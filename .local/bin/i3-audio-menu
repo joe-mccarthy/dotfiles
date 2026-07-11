@@ -1,7 +1,7 @@
 #!/bin/sh
 
 theme="$HOME/.config/rofi/i3-launcher.rasi"
-dmenu_style="-i -l 10 -p audio -fn monospace:size=12 -nb #1d2021 -nf #ebdbb2 -sb #8ec07c -sf #1d2021"
+dmenu_style="-i -l 10 -p audio -fn monospace:size=12 -nb #303446 -nf #c6d0f5 -sb #ca9ee6 -sf #232634"
 theme_env="$HOME/.config/i3/theme.env"
 
 if [ -r "$theme_env" ]; then

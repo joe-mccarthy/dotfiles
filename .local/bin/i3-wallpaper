@@ -2,6 +2,16 @@
 
 config="${XDG_CONFIG_HOME:-$HOME/.config}/i3/wallpaper"
 default="$HOME/.config/wallpapers/ghibli-background-1.png"
+theme_env="$HOME/.config/i3/theme.env"
+
+if [ -r "$theme_env" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$theme_env"
+    set +a
+fi
+
+fallback_color="${CTP_BASE:-#303446}"
 
 wallpaper="${1:-}"
 if [ -z "$wallpaper" ] && [ -r "$config" ]; then
@@ -11,7 +21,7 @@ fi
 [ -n "$wallpaper" ] || wallpaper="$default"
 
 case "$wallpaper" in
-    "~/"*) wallpaper="$HOME/${wallpaper#"~/"}" ;;
+    ~/*) wallpaper="$HOME/${wallpaper#"~/"}" ;;
 esac
 
 if [ -r "$wallpaper" ] && command -v feh >/dev/null 2>&1; then
@@ -19,7 +29,7 @@ if [ -r "$wallpaper" ] && command -v feh >/dev/null 2>&1; then
 fi
 
 if command -v xsetroot >/dev/null 2>&1; then
-    exec xsetroot -solid "#1d2021"
+    exec xsetroot -solid "$fallback_color"
 fi
 
 exit 1

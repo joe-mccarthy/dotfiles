@@ -1,12 +1,23 @@
 #!/bin/sh
 
 i3status_config="$HOME/.config/i3status/config"
+theme_env="$HOME/.config/i3/theme.env"
 wifi_if="wlp3s0"
 lan_if="enp0s31f6"
 
+if [ -r "$theme_env" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$theme_env"
+        set +a
+fi
+
+network_good="${CTP_GREEN:-#a6d189}"
+network_bad="${CTP_RED:-#e78284}"
+
 network_block() {
         if [ "$(cat "/sys/class/net/$lan_if/carrier" 2>/dev/null)" = "1" ]; then
-                printf '{"name":"network","color":"#8ec07c","markup":"none","full_text":"NET LAN"}'
+                printf '{"name":"network","color":"%s","markup":"none","full_text":"NET LAN"}' "$network_good"
                 return
         fi
 
@@ -14,14 +25,14 @@ network_block() {
         if [ "$wifi_state" = "up" ]; then
                 quality=$(awk -v iface="$wifi_if:" '$1 == iface {gsub(/\./, "", $3); printf "%d%%", ($3 * 100 / 70)}' /proc/net/wireless 2>/dev/null)
                 if [ -n "$quality" ]; then
-                        printf '{"name":"network","color":"#8ec07c","markup":"none","full_text":"NET WIFI %s"}' "$quality"
+                        printf '{"name":"network","color":"%s","markup":"none","full_text":"NET WIFI %s"}' "$network_good" "$quality"
                 else
-                        printf '{"name":"network","color":"#8ec07c","markup":"none","full_text":"NET WIFI"}'
+                        printf '{"name":"network","color":"%s","markup":"none","full_text":"NET WIFI"}' "$network_good"
                 fi
                 return
         fi
 
-        printf '{"name":"network","color":"#fb4934","markup":"none","full_text":"NET down"}'
+        printf '{"name":"network","color":"%s","markup":"none","full_text":"NET down"}' "$network_bad"
 }
 
 i3status -c "$i3status_config" | while IFS= read -r line; do
