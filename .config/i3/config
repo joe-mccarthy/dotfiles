@@ -95,6 +95,7 @@ bindsym $mod+Shift+a exec --no-startup-id ~/.local/bin/i3-audio-menu
 
 # Media playback controls.
 bindsym XF86AudioPlay exec --no-startup-id ~/.local/bin/i3-media-controller play-pause
+bindsym XF86AudioPause exec --no-startup-id ~/.local/bin/i3-media-controller pause
 bindsym XF86AudioNext exec --no-startup-id ~/.local/bin/i3-media-controller next
 bindsym XF86AudioPrev exec --no-startup-id ~/.local/bin/i3-media-controller previous
 bindsym XF86AudioStop exec --no-startup-id ~/.local/bin/i3-media-controller stop
