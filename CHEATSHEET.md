@@ -114,6 +114,28 @@ In resize mode:
 | `Mod+1` ... `Mod+0` | Switch to workspace 1 ... 10 |
 | `Mod+Shift+1` ... `Mod+Shift+0` | Move focused window to workspace 1 ... 10 |
 
+## kitty
+
+| Binding | Action |
+| --- | --- |
+| `Ctrl+c` | Copy selection, or interrupt when nothing is selected |
+| `Ctrl+v` | Paste from clipboard |
+| `Ctrl+Shift+c` | Copy to clipboard |
+| `Ctrl+Shift+v` | Paste from clipboard |
+| `Ctrl+Shift+Enter` | New kitty window in current cwd |
+| `Ctrl+Shift+t` | New kitty tab in current cwd |
+| `Ctrl+Shift+w` | Close kitty window |
+| `Ctrl+Shift+q` | Close kitty tab |
+| `Ctrl+Shift+Left` | Previous kitty tab |
+| `Ctrl+Shift+Right` | Next kitty tab |
+| `Ctrl+Shift+,` | Move kitty tab backward |
+| `Ctrl+Shift+.` | Move kitty tab forward |
+| `Ctrl+Shift+r` | Rename kitty tab |
+| `Ctrl+Shift+e` | Open URL with hints |
+| `Ctrl+Shift+s` | Show scrollback |
+| `Ctrl+Shift+\` | Vertical split in current cwd |
+| `Ctrl+Shift+-` | Horizontal split in current cwd |
+
 ## qutebrowser Quick Start
 
 Open qutebrowser with `Mod+b`.
