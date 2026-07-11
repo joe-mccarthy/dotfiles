@@ -1,0 +1,459 @@
+#!/bin/sh
+
+theme_env="$HOME/.config/i3/theme.env"
+state_root="${XDG_RUNTIME_DIR:-}"
+block_name="${BLOCK_NAME:-${1:-}}"
+
+if [ -r "$theme_env" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$theme_env"
+        set +a
+fi
+
+text="${CTP_TEXT:-#c6d0f5}"
+muted="${CTP_OVERLAY0:-#737994}"
+good="${CTP_GREEN:-#a6d189}"
+warn="${CTP_YELLOW:-#e5c890}"
+bad="${CTP_RED:-#e78284}"
+accent="${CTP_MAUVE:-#ca9ee6}"
+
+if [ -n "$state_root" ] && mkdir -p "$state_root/i3blocks" 2>/dev/null; then
+        state_dir="$state_root/i3blocks"
+else
+        state_dir="${TMPDIR:-/tmp}/i3blocks-$(id -u)"
+        mkdir -p "$state_dir"
+fi
+
+emit() {
+        full_text="$1"
+        color="${3:-${2:-$text}}"
+
+        case "$block_name" in
+                notifications)
+                        printf '%s\n\n%s\n' "$full_text" "$color"
+                        ;;
+                *)
+                        printf ' | %s\n\n%s\n' "$full_text" "$color"
+                        ;;
+        esac
+}
+
+notify_user() {
+        if command -v notify-send >/dev/null 2>&1; then
+                notify-send -a i3 "$1" "$2"
+        fi
+}
+
+count_notifications() {
+        dunstctl count "$1" 2>/dev/null || printf '0\n'
+}
+
+notifications_block() {
+        case "${BLOCK_BUTTON:-}" in
+                1)
+                        "$HOME/.local/bin/i3-notifications" menu >/dev/null 2>&1 || true
+                        ;;
+                2)
+                        "$HOME/.local/bin/i3-notifications" history-pop >/dev/null 2>&1 || true
+                        ;;
+                3)
+                        "$HOME/.local/bin/i3-notifications" clear-history >/dev/null 2>&1 || true
+                        ;;
+        esac
+
+        paused=$(dunstctl is-paused 2>/dev/null || printf 'false\n')
+        displayed=$(count_notifications displayed)
+        waiting=$(count_notifications waiting)
+        history=$(count_notifications history)
+
+        case "$paused" in
+                true)
+                        emit "DND ${waiting}" "DND" "$warn"
+                        ;;
+                *)
+                        if [ "$displayed" -gt 0 ] 2>/dev/null; then
+                                emit "NOT ${displayed}" "NOT" "$accent"
+                        elif [ "$waiting" -gt 0 ] 2>/dev/null; then
+                                emit "NOT ${waiting} queued" "NOT" "$warn"
+                        elif [ "$history" -gt 0 ] 2>/dev/null; then
+                                emit "NOT ${history}h" "NOT" "$muted"
+                        else
+                                emit "NOT clear" "NOT" "$good"
+                        fi
+                        ;;
+        esac
+}
+
+active_vpn() {
+        nmcli -t -f TYPE,NAME connection show --active 2>/dev/null | awk -F: '
+                $1 == "vpn" || $1 == "wireguard" {
+                        gsub(/\\:/, ":", $2)
+                        print $2
+                        exit
+                }
+        '
+}
+
+primary_network_line() {
+        nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device status 2>/dev/null | awk -F: '
+                $3 ~ /^connected/ &&
+                $1 !~ /^(lo|docker[0-9]*|br-|veth|p2p-)/ &&
+                $2 !~ /^(bridge|loopback|dummy|tun)$/ {
+                        print
+                        exit
+                }
+        '
+}
+
+device_ip() {
+        nmcli -g IP4.ADDRESS device show "$1" 2>/dev/null | awk 'NR == 1 {
+                sub(/\/.*/, "", $0)
+                print
+        }'
+}
+
+network_block() {
+        case "${BLOCK_BUTTON:-}" in
+                1|3)
+                        "$HOME/.local/bin/i3-network-menu" >/dev/null 2>&1 || true
+                        ;;
+        esac
+
+        vpn=$(active_vpn)
+        line=$(primary_network_line)
+
+        if [ -z "$line" ]; then
+                if [ -n "$vpn" ]; then
+                        emit "NET VPN $vpn" "VPN" "$warn"
+                else
+                        emit "NET down" "NET" "$bad"
+                fi
+                return
+        fi
+
+        device=$(printf '%s\n' "$line" | awk -F: '{ print $1 }')
+        type=$(printf '%s\n' "$line" | awk -F: '{ print $2 }')
+        connection=$(printf '%s\n' "$line" | awk -F: '{ print $4 }')
+        ip_addr=$(device_ip "$device")
+
+        case "$type" in
+                wifi)
+                        label="${connection:-WIFI}"
+                        ;;
+                ethernet)
+                        label="LAN"
+                        ;;
+                *)
+                        label="${connection:-$type}"
+                        ;;
+        esac
+
+        status="NET $label"
+        [ -n "$ip_addr" ] && status="$status $ip_addr"
+        [ -n "$vpn" ] && status="$status VPN"
+
+        if [ -n "$ip_addr" ]; then
+                emit "$status" "NET" "$good"
+        else
+                emit "$status" "NET" "$warn"
+        fi
+}
+
+read_battery_value() {
+        key="$1"
+        file="$2"
+
+        awk -F= -v key="$key" '$1 == key { print $2; exit }' "$file"
+}
+
+battery_block() {
+        case "${BLOCK_BUTTON:-}" in
+                1|3)
+                        "$HOME/.local/bin/i3-power-menu" >/dev/null 2>&1 || true
+                        ;;
+        esac
+
+        now_total=0
+        full_total=0
+        global_status=""
+
+        for battery in /sys/class/power_supply/BAT*/uevent; do
+                [ -r "$battery" ] || continue
+                present=$(read_battery_value POWER_SUPPLY_PRESENT "$battery")
+                [ "$present" = "1" ] || continue
+
+                status=$(read_battery_value POWER_SUPPLY_STATUS "$battery")
+                now=$(read_battery_value POWER_SUPPLY_ENERGY_NOW "$battery")
+                full=$(read_battery_value POWER_SUPPLY_ENERGY_FULL "$battery")
+
+                if [ -z "$now" ] || [ -z "$full" ]; then
+                        now=$(read_battery_value POWER_SUPPLY_CHARGE_NOW "$battery")
+                        full=$(read_battery_value POWER_SUPPLY_CHARGE_FULL "$battery")
+                fi
+
+                case "$now:$full" in
+                        *[!0-9:]*|":")
+                                continue
+                                ;;
+                esac
+
+                now_total=$((now_total + now))
+                full_total=$((full_total + full))
+
+                case "$status" in
+                        Discharging)
+                                global_status="Discharging"
+                                ;;
+                        Charging)
+                                [ "$global_status" = "Discharging" ] || global_status="Charging"
+                                ;;
+                        Full)
+                                [ -n "$global_status" ] || global_status="Full"
+                                ;;
+                        *)
+                                [ -n "$global_status" ] || global_status="$status"
+                                ;;
+                esac
+        done
+
+        if [ "$full_total" -le 0 ] 2>/dev/null; then
+                emit "BAT n/a" "BAT" "$muted"
+                return
+        fi
+
+        pct=$(((now_total * 100 + full_total / 2) / full_total))
+
+        case "$global_status" in
+                Charging)
+                        label="CHR"
+                        color="$good"
+                        ;;
+                Full)
+                        label="FULL"
+                        color="$good"
+                        ;;
+                Discharging)
+                        label="BAT"
+                        if [ "$pct" -le 10 ]; then
+                                color="$bad"
+                        elif [ "$pct" -le 20 ]; then
+                                color="$warn"
+                        else
+                                color="$text"
+                        fi
+                        ;;
+                *)
+                        label="BAT"
+                        color="$muted"
+                        ;;
+        esac
+
+        emit "$label ${pct}%" "$label" "$color"
+}
+
+disk_block() {
+        usage=$(df -P / 2>/dev/null | awk 'NR == 2 { gsub(/%/, "", $5); print $5 }')
+        [ -n "$usage" ] || usage=0
+
+        if [ "$usage" -ge 90 ] 2>/dev/null; then
+                color="$bad"
+        elif [ "$usage" -ge 80 ] 2>/dev/null; then
+                color="$warn"
+        else
+                color="$text"
+        fi
+
+        emit "DISK ${usage}%" "DSK" "$color"
+}
+
+memory_block() {
+        usage=$(awk '
+                /MemTotal:/ { total = $2 }
+                /MemAvailable:/ { available = $2 }
+                END {
+                        if (total > 0) {
+                                printf "%.0f", ((total - available) * 100) / total
+                        }
+                }
+        ' /proc/meminfo)
+        [ -n "$usage" ] || usage=0
+
+        if [ "$usage" -ge 90 ] 2>/dev/null; then
+                color="$bad"
+        elif [ "$usage" -ge 75 ] 2>/dev/null; then
+                color="$warn"
+        else
+                color="$text"
+        fi
+
+        emit "MEM ${usage}%" "MEM" "$color"
+}
+
+cpu_block() {
+        # shellcheck disable=SC2046
+        set -- $(awk '/^cpu / { for (i = 2; i <= NF; i++) printf "%s ", $i; print "" }' /proc/stat)
+
+        total=0
+        for value in "$@"; do
+                total=$((total + value))
+        done
+        idle=$((${4:-0} + ${5:-0}))
+
+        state_file="$state_dir/cpu"
+        if [ -r "$state_file" ]; then
+                read -r prev_total prev_idle < "$state_file"
+        else
+                prev_total=""
+                prev_idle=""
+        fi
+
+        printf '%s %s\n' "$total" "$idle" > "$state_file"
+
+        if [ -z "$prev_total" ] || [ "$total" -le "$prev_total" ] 2>/dev/null; then
+                emit "CPU --" "CPU" "$muted"
+                return
+        fi
+
+        delta_total=$((total - prev_total))
+        delta_idle=$((idle - prev_idle))
+        usage=$(((delta_total - delta_idle) * 100 / delta_total))
+
+        if [ "$usage" -ge 90 ] 2>/dev/null; then
+                color="$bad"
+        elif [ "$usage" -ge 75 ] 2>/dev/null; then
+                color="$warn"
+        else
+                color="$text"
+        fi
+
+        emit "CPU ${usage}%" "CPU" "$color"
+}
+
+load_block() {
+        load=$(awk '{ print $1 }' /proc/loadavg)
+        cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1\n')
+        level=$(awk -v current_load="$load" -v cores="$cores" 'BEGIN {
+                if (current_load >= cores * 1.5) print "bad"
+                else if (current_load >= cores) print "warn"
+                else print "ok"
+        }')
+
+        case "$level" in
+                bad)
+                        color="$bad"
+                        ;;
+                warn)
+                        color="$warn"
+                        ;;
+                *)
+                        color="$text"
+                        ;;
+        esac
+
+        emit "LOAD $load" "LOAD" "$color"
+}
+
+volume_percent() {
+        wpctl get-volume "$1" 2>/dev/null | awk '
+                {
+                        pct = int(($2 * 100) + 0.5)
+                        muted = ""
+                        if ($0 ~ /MUTED/) {
+                                muted = " muted"
+                        }
+                        print pct muted
+                }
+        '
+}
+
+volume_block() {
+        case "${BLOCK_BUTTON:-}" in
+                1|3)
+                        "$HOME/.local/bin/i3-audio-menu" >/dev/null 2>&1 || true
+                        ;;
+                4)
+                        wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ >/dev/null 2>&1 || true
+                        ;;
+                5)
+                        wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- >/dev/null 2>&1 || true
+                        ;;
+                2)
+                        wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle >/dev/null 2>&1 || true
+                        ;;
+        esac
+
+        status=$(volume_percent @DEFAULT_AUDIO_SINK@)
+        pct=$(printf '%s\n' "$status" | awk '{ print $1 }')
+        muted_state=$(printf '%s\n' "$status" | awk '{ print $2 }')
+
+        if [ -z "$pct" ]; then
+                emit "VOL n/a" "VOL" "$muted"
+        elif [ "$muted_state" = "muted" ]; then
+                emit "VOL muted" "VOL" "$warn"
+        else
+                emit "VOL ${pct}%" "VOL" "$text"
+        fi
+}
+
+mic_block() {
+        case "${BLOCK_BUTTON:-}" in
+                1|2|3)
+                        wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle >/dev/null 2>&1 || true
+                        ;;
+        esac
+
+        status=$(volume_percent @DEFAULT_AUDIO_SOURCE@)
+        pct=$(printf '%s\n' "$status" | awk '{ print $1 }')
+        muted_state=$(printf '%s\n' "$status" | awk '{ print $2 }')
+
+        if [ -z "$pct" ]; then
+                emit "MIC n/a" "MIC" "$muted"
+        elif [ "$muted_state" = "muted" ]; then
+                emit "MIC muted" "MIC" "$warn"
+        else
+                emit "MIC ${pct}%" "MIC" "$text"
+        fi
+}
+
+time_block() {
+        emit "$(date '+%a %d %b %H:%M')" "TIME" "$text"
+}
+
+case "${1:-}" in
+        notifications)
+                notifications_block
+                ;;
+        network)
+                network_block
+                ;;
+        battery)
+                battery_block
+                ;;
+        disk)
+                disk_block
+                ;;
+        memory)
+                memory_block
+                ;;
+        cpu)
+                cpu_block
+                ;;
+        load)
+                load_block
+                ;;
+        volume)
+                volume_block
+                ;;
+        mic)
+                mic_block
+                ;;
+        time)
+                time_block
+                ;;
+        *)
+                notify_user "i3blocks" "Unknown block: ${1:-empty}"
+                emit "ERR ${1:-block}" "ERR" "$bad"
+                exit 1
+                ;;
+esac

@@ -35,13 +35,13 @@ To print the package manifest:
 The i3 desktop config now lives in this repo:
 
 - `.config/i3/` for i3 config and wallpaper path
-- `.config/i3status/` for bar status config
+- `.config/i3blocks/` for clickable bar status modules
 - `.config/dunst/` for notifications
 - `.config/rofi/` for the launcher and utility menu theme
 - `.config/picom/` for compositor settings
-- `.local/bin/i3-*` and `.local/bin/i3status-wrapper` for helper scripts
+- `.local/bin/i3-*` and `.local/bin/i3blocks-status` for helper scripts
 
-The current setup includes curated i3 autostart, rofi launcher modes, qutebrowser, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3status display. The desktop shell, launcher, notifications, terminal, browser furniture, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
+The current setup includes curated i3 autostart, rofi launcher modes, qutebrowser, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3blocks display. The desktop shell, launcher, notifications, terminal, browser furniture, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
 
 After the first install from GNOME, log out, select `i3` from the login screen session chooser, then log back in.
 
@@ -63,7 +63,7 @@ GTK and Qt app styling uses Catppuccin Frappe, JetBrains Mono, Papirus-Dark icon
 ./init.sh --catppuccin-only
 ```
 
-The shared theme env records the Catppuccin Frappe palette for scripts that can source it, while rofi, kitty, dunst, i3, i3status, and Starship keep explicit Frappe colours in their own config formats.
+The shared theme env records the Catppuccin Frappe palette for scripts that can source it, while rofi, kitty, dunst, i3, i3blocks, and Starship keep explicit Frappe colours in their own config formats.
 
 Keyboard layout switching is handled by `.local/bin/i3-keyboard-layout`. Use `$mod+Shift+i` to switch between the UK laptop layout and US external keyboard layout. The selected layout is saved in `.config/i3/keyboard-layout` and reapplied on i3 reload.
 
@@ -78,8 +78,6 @@ Install the terminal toolchain manually with:
 ```sh
 sudo apt-get install starship eza bat fzf fd-find ripgrep btop zoxide direnv tree ncdu duf hyperfine shellcheck shfmt lazygit git-delta glow procs neovim tmux fastfetch fonts-jetbrains-mono fonts-powerline fonts-noto-color-emoji
 ```
-
-The network segment in `.local/bin/i3status-wrapper` currently uses this machine's wired and wireless interface names. Update `wifi_if` and `lan_if` there if the names differ on another machine.
 
 ## Backup And Restore
 

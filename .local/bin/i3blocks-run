@@ -1,0 +1,14 @@
+#!/bin/sh
+
+if command -v i3blocks >/dev/null 2>&1; then
+        exec i3blocks "$@"
+fi
+
+fallback="$HOME/.local/opt/i3blocks/usr/bin/i3blocks"
+if [ -x "$fallback" ]; then
+        exec "$fallback" "$@"
+fi
+
+printf 'i3blocks not found. Install the i3blocks package.\n' >&2
+exit 127
+

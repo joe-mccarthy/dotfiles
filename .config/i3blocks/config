@@ -1,0 +1,57 @@
+# i3blocks config for i3bar.
+
+separator=false
+separator_block_width=0
+markup=none
+
+[notifications]
+command=~/.local/bin/i3blocks-status notifications
+separator=false
+separator_block_width=0
+interval=10
+signal=10
+
+[network]
+command=~/.local/bin/i3blocks-status network
+separator=false
+separator_block_width=0
+interval=10
+signal=11
+
+[battery]
+command=~/.local/bin/i3blocks-status battery
+separator=false
+separator_block_width=0
+interval=30
+signal=14
+
+[memory]
+command=~/.local/bin/i3blocks-status memory
+separator=false
+separator_block_width=0
+interval=5
+
+[cpu]
+command=~/.local/bin/i3blocks-status cpu
+separator=false
+separator_block_width=0
+interval=5
+
+[load]
+command=~/.local/bin/i3blocks-status load
+separator=false
+separator_block_width=0
+interval=5
+
+[volume]
+command=~/.local/bin/i3blocks-status volume
+separator=false
+separator_block_width=0
+interval=10
+signal=12
+
+[time]
+command=~/.local/bin/i3blocks-status time
+separator=false
+separator_block_width=0
+interval=30

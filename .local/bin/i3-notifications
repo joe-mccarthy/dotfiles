@@ -17,7 +17,7 @@ accent="${CTP_MAUVE:-#ca9ee6}"
 warn="${CTP_YELLOW:-#e5c890}"
 
 refresh_bar() {
-        pkill -USR1 -x i3status 2>/dev/null || true
+        pkill -RTMIN+10 -x i3blocks 2>/dev/null || true
 }
 
 notify_user() {
