@@ -66,10 +66,17 @@ read_saved_config() {
         }' "$config" 2>/dev/null
 }
 
+hide_ibus_indicator() {
+        command -v gsettings >/dev/null 2>&1 || return
+
+        gsettings set org.freedesktop.ibus.panel show-icon-on-systray false >/dev/null 2>&1 || true
+}
+
 sync_ibus() {
         layout="$1"
 
         command -v ibus >/dev/null 2>&1 || return
+        hide_ibus_indicator
 
         case "$layout" in
                 gb) ibus engine xkb:gb::eng >/dev/null 2>&1 || true ;;
