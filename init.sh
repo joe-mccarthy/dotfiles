@@ -30,6 +30,8 @@ catppuccin_gtk_legacy_theme="${catppuccin_gtk_theme}-dark"
 catppuccin_gtk_installer_url="https://raw.githubusercontent.com/catppuccin/gtk/${catppuccin_gtk_release}/install.py"
 catppuccin_qt5ct_repo="https://github.com/catppuccin/qt5ct.git"
 catppuccin_kvantum_repo="https://github.com/catppuccin/Kvantum.git"
+yt_dlp_binary_url="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
+yt_dlp_user_binary="$HOME/.local/bin/yt-dlp"
 
 usage() {
   cat <<USAGE
@@ -152,6 +154,18 @@ print_system_info() {
   fi
 }
 
+refuse_root_run() {
+  if [ "$EUID" -ne 0 ]; then
+    return
+  fi
+
+  cat >&2 <<ROOT_RUN
+Do not run this script with sudo or as root.
+Run it as your normal user; it will ask sudo for apt and system changes.
+ROOT_RUN
+  exit 1
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --no-install|--skip-deps)
@@ -210,6 +224,38 @@ install_apt_dependencies() {
 
   mapfile -t packages < <(read_packages)
   install_missing_packages "apt dependency" "${packages[@]}"
+  install_upstream_yt_dlp
+}
+
+install_upstream_yt_dlp() {
+  if ! manifest_contains_package yt-dlp; then
+    return
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    printf 'curl not found; skipping upstream yt-dlp install.\n' >&2
+    return
+  fi
+
+  mkdir -p "$(dirname "$yt_dlp_user_binary")"
+  tmp_file="$(mktemp)"
+
+  if ! curl -fsSL "$yt_dlp_binary_url" -o "$tmp_file"; then
+    rm -f "$tmp_file"
+    printf 'Could not download upstream yt-dlp from %s\n' "$yt_dlp_binary_url" >&2
+    return
+  fi
+
+  install -m 0755 "$tmp_file" "$yt_dlp_user_binary"
+  rm -f "$tmp_file"
+
+  printf 'Installed upstream yt-dlp: %s\n' "$yt_dlp_user_binary"
+  "$yt_dlp_user_binary" --version
+
+  resolved_yt_dlp="$(command -v yt-dlp 2>/dev/null || true)"
+  if [ "$(readlink -f "$resolved_yt_dlp" 2>/dev/null || printf '%s' "$resolved_yt_dlp")" != "$(readlink -f "$yt_dlp_user_binary")" ]; then
+    printf 'Warning: %s is not the active yt-dlp in this shell; apt yt-dlp may still be used.\n' "$yt_dlp_user_binary" >&2
+  fi
 }
 
 install_catppuccin_apt_dependencies() {
@@ -521,6 +567,7 @@ prepare_stow_targets() {
   mkdir -p "$qutebrowser_target"
 }
 
+refuse_root_run
 print_system_info
 
 if [ "$catppuccin_only" -eq 1 ]; then

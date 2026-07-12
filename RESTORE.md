@@ -18,7 +18,7 @@ git clone git@github.com:joe-mccarthy/dotfiles.git ~/.dots
 cd ~/.dots
 ```
 
-Install packages and stow files. This also configures the Microsoft apt repository before installing VS Code:
+Install packages and stow files. Run this as your normal user; the script asks sudo for apt and system changes. This also configures the Microsoft apt repository before installing VS Code and refreshes the upstream user-local `yt-dlp` binary:
 
 ```sh
 ./init.sh
@@ -51,7 +51,7 @@ cp ~/.dots/secrets/env.example ~/.config/secrets/env
 chmod 600 ~/.config/secrets/env
 ```
 
-Use the template at `radio/stations.tsv.example` for local radio stations:
+Use the template at `radio/stations.tsv.example` for local radio stations and playlist URLs:
 
 ```bash
 mkdir -p ~/.config/i3

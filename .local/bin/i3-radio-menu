@@ -73,6 +73,8 @@ ensure_stations_file() {
 #
 # One station per line:
 # Name<TAB>Stream or playlist URL
+#
+# YouTube playlist URLs also work when yt-dlp is installed.
 
 SomaFM Groove Salad	https://somafm.com/groovesalad.pls
 SomaFM Drone Zone	https://somafm.com/dronezone.pls
@@ -219,6 +221,34 @@ toggle_radio() {
         fi
 }
 
+playlist_step() {
+        direction="$1"
+        label="$2"
+
+        pid=$(radio_pid)
+        if [ -z "$pid" ]; then
+                notify "Radio" "Stopped"
+                exit 1
+        fi
+
+        if mpv_command "{\"command\":[\"playlist-$direction\",\"weak\"]}"; then
+                refresh_status
+                notify "Radio" "$label"
+                return
+        fi
+
+        notify "Radio" "Could not $label"
+        exit 1
+}
+
+next_track() {
+        playlist_step next "Next track"
+}
+
+previous_track() {
+        playlist_step prev "Previous track"
+}
+
 play_station() {
         station="$1"
         url="$2"
@@ -242,6 +272,7 @@ play_station() {
 
         mpv \
                 --no-video \
+                --ytdl-format=bestaudio/best \
                 --force-window=no \
                 --really-quiet \
                 --input-ipc-server="$socket_file" \
@@ -346,6 +377,8 @@ main_options() {
                 else
                         printf 'Pause radio\n'
                 fi
+                printf 'Next track\n'
+                printf 'Previous track\n'
         fi
 
         cat <<OPTIONS
@@ -363,6 +396,8 @@ menu() {
                 "Now playing:"*) status_message ;;
                 "Pause radio") pause_radio ;;
                 "Resume radio") resume_radio ;;
+                "Next track") next_track ;;
+                "Previous track") previous_track ;;
                 "Play station") play_menu ;;
                 "Stop radio") stop_radio ;;
                 Status) status_message ;;
@@ -381,12 +416,14 @@ case "${1:-menu}" in
         pause) pause_radio ;;
         resume) resume_radio ;;
         toggle|play-pause) toggle_radio ;;
+        next) next_track ;;
+        previous|prev) previous_track ;;
         stop) stop_radio ;;
         status) status_message ;;
         edit) edit_stations ;;
         list) main_options ;;
         *)
-                printf 'usage: %s [menu|play|pause|resume|toggle|stop|status|edit|list]\n' "$0" >&2
+                printf 'usage: %s [menu|play|pause|resume|toggle|next|previous|stop|status|edit|list]\n' "$0" >&2
                 exit 2
                 ;;
 esac

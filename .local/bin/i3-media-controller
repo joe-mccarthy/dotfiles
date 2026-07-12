@@ -171,6 +171,12 @@ run_context_action() {
                         stop)
                                 "$HOME/.local/bin/i3-radio-menu" stop
                                 ;;
+                        next)
+                                "$HOME/.local/bin/i3-radio-menu" next
+                                ;;
+                        previous|prev)
+                                "$HOME/.local/bin/i3-radio-menu" previous
+                                ;;
                 esac
                 exit $?
         fi
@@ -283,12 +289,12 @@ menu() {
 
         case "$selection" in
                 Status) status_message ;;
-                "Play/Pause") run_player_action play-pause ;;
-                Play) run_player_action play ;;
-                Pause) run_player_action pause ;;
-                Next) run_player_action next ;;
-                Previous) run_player_action previous ;;
-                Stop) run_player_action stop ;;
+                "Play/Pause") run_context_action play-pause ;;
+                Play) run_context_action play ;;
+                Pause) run_context_action pause ;;
+                Next) run_context_action next ;;
+                Previous) run_context_action previous ;;
+                Stop) run_context_action stop ;;
                 "Select player") select_player ;;
                 "Clear selected player") clear_player ;;
                 "Audio menu") open_audio_menu ;;
@@ -306,8 +312,8 @@ case "${1:-menu}" in
         play-pause|toggle) run_context_action play-pause ;;
         play) run_context_action play ;;
         pause) run_context_action pause ;;
-        next) run_player_action next ;;
-        previous|prev) run_player_action previous ;;
+        next) run_context_action next ;;
+        previous|prev) run_context_action previous ;;
         stop) run_context_action stop ;;
         select) select_player ;;
         clear) clear_player ;;

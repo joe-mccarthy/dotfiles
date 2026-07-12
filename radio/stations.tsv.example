@@ -5,6 +5,7 @@
 # Name<TAB>Stream or playlist URL
 #
 # mpv can play direct MP3/AAC streams and common playlist files such as PLS/M3U.
+# YouTube playlist URLs also work when yt-dlp is installed and current enough.
 
 SomaFM Groove Salad	https://somafm.com/groovesalad.pls
 SomaFM Drone Zone	https://somafm.com/dronezone.pls

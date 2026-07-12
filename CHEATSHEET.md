@@ -85,13 +85,13 @@ When music is playing, the status bar media block appears. Left click toggles pl
 
 ## Radio
 
-Radio stations are configured in local-only `~/.config/i3/radio-stations.tsv` as `Name<TAB>Stream URL`. The repo template is `radio/stations.tsv.example`.
+Radio entries are configured in local-only `~/.config/i3/radio-stations.tsv` as `Name<TAB>Stream or playlist URL`. YouTube playlist URLs work through `mpv` and `yt-dlp` and are launched audio-only. The repo template is `radio/stations.tsv.example`.
 
 | Binding | Action |
 | --- | --- |
 | `Mod+Shift+m` | Open radio menu |
 
-The status bar radio block appears while radio is playing. Left or right click opens the radio menu; middle click stops radio.
+The status bar radio block appears while radio is playing. Left or right click opens the radio menu; middle click stops radio. Media next/previous controls move through playlist entries when radio is the active playback context.
 
 ## Notes
 

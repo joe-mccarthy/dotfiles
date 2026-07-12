@@ -37,6 +37,8 @@ pipewire-pulse
 pavucontrol
 playerctl
 mpv
+yt-dlp
+socat
 qutebrowser
 thunar
 thunar-volman

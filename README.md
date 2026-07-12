@@ -10,7 +10,7 @@ cd ~/.dots
 ./init.sh
 ```
 
-`init.sh` installs missing Debian/Ubuntu apt packages from `packages/debian.txt`, then runs:
+Run `init.sh` as your normal user; it asks sudo only for apt and system changes. It installs missing Debian/Ubuntu apt packages from `packages/debian.txt`, refreshes the upstream user-local `yt-dlp` binary, then runs:
 
 ```sh
 stow -d ~/.dots -t ~ --restow .
@@ -51,7 +51,7 @@ The rofi control center is available with `$mod+F12`. It links the app launcher,
 
 Media controls use `playerctl` for MPRIS-compatible apps such as browsers, Spotify, and VLC. The i3blocks media block appears only while something is playing and supports click controls.
 
-Radio uses `mpv` and local-only `~/.config/i3/radio-stations.tsv`. Add stations as `Name<TAB>Stream URL`; the repo only keeps `radio/stations.tsv.example`. The radio block appears only while radio is playing.
+Radio uses `mpv`, with `yt-dlp` for YouTube, and local-only `~/.config/i3/radio-stations.tsv`. Add entries as `Name<TAB>Stream or playlist URL`; YouTube playlist URLs are launched audio-only. The repo only keeps `radio/stations.tsv.example`. YouTube changes often, so update `yt-dlp` if those entries stop resolving. The radio block appears only while radio is playing, and media next/previous controls step through playlist entries when radio is the active playback context.
 
 Notes open in kitty with a terminal editor by default, preferring `nvim`, `vim`, then `vi`. Set `I3_NOTES_EDITOR` to override that.
 
