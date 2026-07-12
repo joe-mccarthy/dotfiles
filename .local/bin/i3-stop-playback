@@ -1,0 +1,74 @@
+#!/bin/sh
+
+state_root="${XDG_RUNTIME_DIR:-}"
+
+if [ -n "$state_root" ]; then
+        radio_state_dir="$state_root/i3-radio"
+else
+        radio_state_dir="${TMPDIR:-/tmp}/i3-radio-$(id -u)"
+fi
+
+radio_pid_file="$radio_state_dir/pid"
+radio_station_file="$radio_state_dir/station"
+radio_url_file="$radio_state_dir/url"
+radio_socket_file="$radio_state_dir/mpv.sock"
+radio_paused_file="$radio_state_dir/paused"
+
+refresh_status() {
+        pkill -RTMIN+16 -x i3blocks 2>/dev/null || true
+        pkill -RTMIN+17 -x i3blocks 2>/dev/null || true
+}
+
+cleanup_radio_state() {
+        rm -f "$radio_pid_file" "$radio_station_file" "$radio_url_file" "$radio_socket_file" "$radio_paused_file" 2>/dev/null || true
+}
+
+radio_pid() {
+        [ -r "$radio_pid_file" ] || return 0
+        pid=$(cat "$radio_pid_file")
+
+        case "$pid" in
+                ''|*[!0-9]*)
+                        cleanup_radio_state
+                        return 0
+                        ;;
+        esac
+
+        if kill -0 "$pid" 2>/dev/null && ps -p "$pid" -o comm= 2>/dev/null | grep -Eq '^(mpv|mpv\.com)$'; then
+                printf '%s\n' "$pid"
+        else
+                cleanup_radio_state
+        fi
+}
+
+stop_radio() {
+        pid=$(radio_pid)
+        if [ -n "$pid" ]; then
+                kill -CONT "$pid" 2>/dev/null || true
+                kill "$pid" 2>/dev/null || true
+                sleep 0.2
+                kill -9 "$pid" 2>/dev/null || true
+        fi
+
+        cleanup_radio_state
+}
+
+pause_media_players() {
+        command -v playerctl >/dev/null 2>&1 || return 0
+
+        players=$(playerctl -l 2>/dev/null || true)
+        [ -n "$players" ] || return 0
+
+        for player in $players; do
+                status=$(playerctl -p "$player" status 2>/dev/null || true)
+                [ "$status" = "Playing" ] || continue
+
+                playerctl -p "$player" pause >/dev/null 2>&1 ||
+                        playerctl -p "$player" stop >/dev/null 2>&1 ||
+                        true
+        done
+}
+
+stop_radio
+pause_media_players
+refresh_status

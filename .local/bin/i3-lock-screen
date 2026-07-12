@@ -12,11 +12,19 @@ fi
 lock_color="${CTP_BASE:-#303446}"
 lock_color="${lock_color#\#}"
 
+stop_playback() {
+        if [ -x "$HOME/.local/bin/i3-stop-playback" ]; then
+                "$HOME/.local/bin/i3-stop-playback" >/dev/null 2>&1 || true
+        fi
+}
+
 lock_screen() {
+        stop_playback
         exec i3lock -n -e -f -c "$lock_color"
 }
 
 lock_for_suspend() {
+        stop_playback
         i3lock -n -e -f -c "$lock_color" &
         sleep 0.2
         systemctl suspend

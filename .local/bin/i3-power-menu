@@ -28,6 +28,12 @@ notify() {
         fi
 }
 
+stop_playback() {
+        if [ -x "$HOME/.local/bin/i3-stop-playback" ]; then
+                "$HOME/.local/bin/i3-stop-playback" >/dev/null 2>&1 || true
+        fi
+}
+
 lock_screen() {
         "$HOME/.local/bin/i3-lock-screen"
 }
@@ -46,13 +52,22 @@ case "$selection" in
                 "$HOME/.local/bin/i3-lock-screen" suspend
                 ;;
         Logout)
-                confirm "logout" && i3-msg exit
+                if confirm "logout"; then
+                        stop_playback
+                        i3-msg exit
+                fi
                 ;;
         Reboot)
-                confirm "reboot" && systemctl reboot
+                if confirm "reboot"; then
+                        stop_playback
+                        systemctl reboot
+                fi
                 ;;
         Shutdown)
-                confirm "shutdown" && systemctl poweroff
+                if confirm "shutdown"; then
+                        stop_playback
+                        systemctl poweroff
+                fi
                 ;;
         "")
                 exit 0
