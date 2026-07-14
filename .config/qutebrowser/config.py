@@ -50,7 +50,7 @@ c.fonts.tabs.unselected = f"9pt {font}"
 
 c.auto_save.session = True
 c.confirm_quit = ["downloads"]
-c.content.autoplay = False
+c.content.autoplay = True
 c.content.notifications.enabled = False
 c.colors.webpage.darkmode.enabled = True
 c.colors.webpage.darkmode.policy.images = "never"

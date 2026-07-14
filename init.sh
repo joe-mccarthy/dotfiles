@@ -465,6 +465,67 @@ KVANTUM
   fi
 }
 
+configure_qutebrowser_widevine() {
+  shopt -s nullglob
+  existing_libs=("$HOME/.config/chromium/WidevineCdm"/*/_platform_specific/linux_x64/libwidevinecdm.so)
+
+  for existing_lib in "${existing_libs[@]}"; do
+    if [ -r "$existing_lib" ]; then
+      shopt -u nullglob
+      existing_root="$(dirname "$(dirname "$(dirname "$existing_lib")")")"
+      printf 'qutebrowser Widevine CDM already present: %s\n' "$existing_root"
+      return
+    fi
+  done
+
+  widevine_libs=("$HOME/.mozilla/firefox"/*/gmp-widevinecdm/*/libwidevinecdm.so)
+  shopt -u nullglob
+
+  if [ "${#widevine_libs[@]}" -eq 0 ]; then
+    printf 'Widevine CDM not found; skipping qutebrowser DRM setup.\n' >&2
+    return
+  fi
+
+  source_lib="$(printf '%s\n' "${widevine_libs[@]}" | sort -V | tail -n 1)"
+  source_root="$(dirname "$source_lib")"
+  source_manifest="$source_root/manifest.json"
+
+  if [ ! -r "$source_manifest" ]; then
+    printf 'Widevine manifest not found; skipping qutebrowser DRM setup: %s\n' "$source_manifest" >&2
+    return
+  fi
+
+  widevine_version="$(basename "$source_root")"
+  target_root="$HOME/.config/chromium/WidevineCdm/$widevine_version"
+  target_lib="$target_root/_platform_specific/linux_x64/libwidevinecdm.so"
+
+  link_widevine_file() {
+    source_path="$1"
+    link_path="$2"
+
+    if [ -e "$link_path" ] || [ -L "$link_path" ]; then
+      if [ "$(readlink -f "$link_path" 2>/dev/null || true)" = "$(readlink -f "$source_path")" ]; then
+        return 0
+      fi
+
+      printf 'Widevine target already exists; leaving it alone: %s\n' "$link_path" >&2
+      return 1
+    fi
+
+    ln -s "$source_path" "$link_path"
+  }
+
+  mkdir -p "$target_root/_platform_specific/linux_x64"
+  link_widevine_file "$source_lib" "$target_lib" || return
+  link_widevine_file "$source_manifest" "$target_root/manifest.json" || return
+
+  if [ -r "$source_root/LICENSE" ]; then
+    link_widevine_file "$source_root/LICENSE" "$target_root/LICENSE" || return
+  fi
+
+  printf 'Linked qutebrowser Widevine CDM: %s\n' "$target_root"
+}
+
 configure_default_browser() {
   if ! desktop_file_exists "$qutebrowser_desktop"; then
     printf 'qutebrowser desktop file not found; skipping default browser setup.\n'
@@ -596,6 +657,8 @@ fi
 if [ "$install_catppuccin" -eq 1 ]; then
   install_catppuccin_user_themes
 fi
+
+configure_qutebrowser_widevine
 
 if [ -x "$HOME/.local/bin/i3-apply-theme" ]; then
   "$HOME/.local/bin/i3-apply-theme"

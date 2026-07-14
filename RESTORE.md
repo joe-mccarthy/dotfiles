@@ -90,3 +90,5 @@ Commit and push in one step:
 ## What Is Not Backed Up
 
 Do not track caches, runtime state, browser profiles, pulse cookies, application databases, machine credentials, or access tokens. Recreate those locally or store secrets in a password manager.
+
+Widevine/DRM browser CDM files are local-only too. `init.sh` links an existing Firefox Widevine CDM into qutebrowser's QtWebEngine lookup path when one is already present; otherwise install or enable Widevine locally first.
