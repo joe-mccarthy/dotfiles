@@ -125,7 +125,7 @@ smart_gaps off
 bindsym $mod+Return exec --no-startup-id /usr/bin/kitty
 
 # start browser
-bindsym $mod+b exec --no-startup-id qutebrowser
+bindsym $mod+b exec --no-startup-id firefox-esr
 
 # start file manager
 bindsym $mod+Shift+f exec --no-startup-id thunar

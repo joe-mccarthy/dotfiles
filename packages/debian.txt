@@ -39,7 +39,7 @@ playerctl
 mpv
 yt-dlp
 socat
-qutebrowser
+firefox-esr
 thunar
 thunar-volman
 thunar-archive-plugin

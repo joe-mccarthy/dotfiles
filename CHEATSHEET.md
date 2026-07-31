@@ -7,7 +7,7 @@
 | Binding | Action |
 | --- | --- |
 | `Mod+Return` | Open kitty |
-| `Mod+b` | Open qutebrowser |
+| `Mod+b` | Open Firefox ESR |
 | `Mod+Shift+f` | Open Thunar |
 | `Mod+Shift+q` | Close focused window |
 | `Mod+Shift+x` | Lock screen |
@@ -174,89 +174,3 @@ In resize mode:
 | `Ctrl+Shift+s` | Show scrollback |
 | `Ctrl+Shift+\` | Vertical split in current cwd |
 | `Ctrl+Shift+-` | Horizontal split in current cwd |
-
-## qutebrowser Quick Start
-
-Open qutebrowser with `Mod+b`.
-
-qutebrowser is keyboard-first and mode-based:
-
-| Mode | Use |
-| --- | --- |
-| Normal | Navigate pages, tabs, links, and commands |
-| Insert | Type into web forms |
-| Command | Run commands after pressing `:` |
-| Hint | Select links by typing labels after pressing `f` |
-| Passthrough | Send keys directly to the page |
-
-Press `Esc` to return to normal mode.
-
-## qutebrowser Custom Bindings
-
-These are set in `.config/qutebrowser/config.py`.
-
-| Binding | Action |
-| --- | --- |
-| `Ctrl+l` | Open URL/search prompt |
-| `Ctrl+t` | Open URL/search prompt in a new tab |
-| `Ctrl+w` | Close current tab |
-| `Ctrl+Shift+t` | Reopen closed tab |
-| `Ctrl+r` | Reload |
-| `Ctrl+Shift+r` | Force reload |
-| `Ctrl+f` | Search in page |
-| `Ctrl+Tab` | Next tab |
-| `Ctrl+Shift+Tab` | Previous tab |
-| `Alt+Left` | Back |
-| `Alt+Right` | Forward |
-| `Ctrl+=` | Zoom in |
-| `Ctrl+-` | Zoom out |
-| `Ctrl+0` | Reset zoom |
-| `xx` | Toggle statusbar |
-
-## qutebrowser Defaults Worth Knowing
-
-| Binding | Action |
-| --- | --- |
-| `:` | Command prompt |
-| `o` | Open URL/search in current tab |
-| `O` | Edit current URL before opening |
-| `t` | Open URL/search in new tab |
-| `d` | Close tab |
-| `u` | Reopen closed tab |
-| `J` | Previous tab |
-| `K` | Next tab |
-| `H` | Back |
-| `L` | Forward |
-| `r` | Reload |
-| `/` | Search in page |
-| `n` | Next search match |
-| `N` | Previous search match |
-| `f` | Hint links in current tab |
-| `F` | Hint links in a new tab |
-| `yy` | Yank current URL |
-| `p` | Open clipboard URL in current tab |
-| `P` | Open clipboard URL in new tab |
-| `i` | Enter insert mode |
-| `Ctrl+v` | Enter passthrough mode |
-| `Esc` | Return to normal mode |
-
-## qutebrowser Commands
-
-Type commands after `:`.
-
-| Command | Action |
-| --- | --- |
-| `:open example.com` | Open a URL or search |
-| `:open -t example.com` | Open a URL or search in a new tab |
-| `:tab-close` | Close the current tab |
-| `:undo` | Reopen the last closed tab |
-| `:back` / `:forward` | Navigate history |
-| `:reload` / `:reload -f` | Reload or force reload |
-| `:download` | Start a download for the current URL |
-| `:bookmark-add` | Bookmark current page |
-| `:set` | Inspect or change settings |
-| `:config-source` | Reload qutebrowser config |
-| `:help` | Open help |
-| `:quit` | Quit qutebrowser |
-
-Downloads go to `~/Downloads`. External editing opens `kitty` with `nvim`.

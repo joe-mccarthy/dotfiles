@@ -41,7 +41,7 @@ The i3 desktop config now lives in this repo:
 - `.config/picom/` for compositor settings
 - `.local/bin/i3-*` and `.local/bin/i3blocks-status` for helper scripts
 
-The current setup includes curated i3 autostart, rofi launcher modes, a unified rofi control center, searchable keybinding help, a scratchpad terminal, Markdown notes, media controls, configurable internet radio, qutebrowser, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3blocks display. The desktop shell, launcher, notifications, terminal, browser furniture, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
+The current setup includes curated i3 autostart, rofi launcher modes, a unified rofi control center, searchable keybinding help, a scratchpad terminal, Markdown notes, media controls, configurable internet radio, Firefox ESR, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3blocks display. The desktop shell, launcher, notifications, terminal, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
 
 After the first install from GNOME, log out, select `i3` from the login screen session chooser, then log back in.
 
@@ -61,7 +61,7 @@ Network and Bluetooth helpers are handled by `.local/bin/i3-network-menu` and `.
 
 Audio devices are handled by `.local/bin/i3-audio-menu`. Use `$mod+Shift+a` to switch output/input devices, mute, adjust volume, open `pavucontrol`, or show current audio status.
 
-qutebrowser is the managed browser and default handler for HTTP, HTTPS, and HTML. Use `$mod+b` to open it. Its minimal chrome is themed with Catppuccin Frappe and JetBrains Mono, while web page fonts are left to the sites themselves.
+Firefox ESR is the managed browser and default handler for HTTP, HTTPS, and HTML. Use `$mod+b` to open it. Browser profiles, extensions, and browsing data remain local to each machine.
 
 Startup is intentionally curated by `.local/bin/i3-autostart` instead of running every GNOME autostart entry. It applies GTK/Qt theme environment, starts XSettings, and updates user dirs. Network and Bluetooth are controlled through the rofi helpers, so no network or Bluetooth tray icons are started.
 

@@ -3,6 +3,7 @@ packages
 RESTORE.md
 secrets
 radio
+\.config/qutebrowser
 
 .git/
 

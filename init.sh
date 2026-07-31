@@ -13,7 +13,7 @@ catppuccin_only=0
 microsoft_keyring="/usr/share/keyrings/microsoft.gpg"
 microsoft_source="/etc/apt/sources.list.d/vscode.list"
 microsoft_repo="deb [arch=amd64 signed-by=$microsoft_keyring] https://packages.microsoft.com/repos/code stable main"
-qutebrowser_desktop="org.qutebrowser.qutebrowser.desktop"
+firefox_desktop="firefox-esr.desktop"
 thunar_desktop="thunar.desktop"
 kitty_desktop="kitty.desktop"
 loupe_desktop="org.gnome.Loupe.desktop"
@@ -220,10 +220,10 @@ install_apt_dependencies() {
 
   ensure_i3_desktop
   ensure_microsoft_code_repo
-  remove_installed_packages "Firefox" firefox firefox-esr
 
   mapfile -t packages < <(read_packages)
   install_missing_packages "apt dependency" "${packages[@]}"
+  remove_installed_packages "qutebrowser" qutebrowser
   install_upstream_yt_dlp
 }
 
@@ -465,83 +465,22 @@ KVANTUM
   fi
 }
 
-configure_qutebrowser_widevine() {
-  shopt -s nullglob
-  existing_libs=("$HOME/.config/chromium/WidevineCdm"/*/_platform_specific/linux_x64/libwidevinecdm.so)
-
-  for existing_lib in "${existing_libs[@]}"; do
-    if [ -r "$existing_lib" ]; then
-      shopt -u nullglob
-      existing_root="$(dirname "$(dirname "$(dirname "$existing_lib")")")"
-      printf 'qutebrowser Widevine CDM already present: %s\n' "$existing_root"
-      return
-    fi
-  done
-
-  widevine_libs=("$HOME/.mozilla/firefox"/*/gmp-widevinecdm/*/libwidevinecdm.so)
-  shopt -u nullglob
-
-  if [ "${#widevine_libs[@]}" -eq 0 ]; then
-    printf 'Widevine CDM not found; skipping qutebrowser DRM setup.\n' >&2
-    return
-  fi
-
-  source_lib="$(printf '%s\n' "${widevine_libs[@]}" | sort -V | tail -n 1)"
-  source_root="$(dirname "$source_lib")"
-  source_manifest="$source_root/manifest.json"
-
-  if [ ! -r "$source_manifest" ]; then
-    printf 'Widevine manifest not found; skipping qutebrowser DRM setup: %s\n' "$source_manifest" >&2
-    return
-  fi
-
-  widevine_version="$(basename "$source_root")"
-  target_root="$HOME/.config/chromium/WidevineCdm/$widevine_version"
-  target_lib="$target_root/_platform_specific/linux_x64/libwidevinecdm.so"
-
-  link_widevine_file() {
-    source_path="$1"
-    link_path="$2"
-
-    if [ -e "$link_path" ] || [ -L "$link_path" ]; then
-      if [ "$(readlink -f "$link_path" 2>/dev/null || true)" = "$(readlink -f "$source_path")" ]; then
-        return 0
-      fi
-
-      printf 'Widevine target already exists; leaving it alone: %s\n' "$link_path" >&2
-      return 1
-    fi
-
-    ln -s "$source_path" "$link_path"
-  }
-
-  mkdir -p "$target_root/_platform_specific/linux_x64"
-  link_widevine_file "$source_lib" "$target_lib" || return
-  link_widevine_file "$source_manifest" "$target_root/manifest.json" || return
-
-  if [ -r "$source_root/LICENSE" ]; then
-    link_widevine_file "$source_root/LICENSE" "$target_root/LICENSE" || return
-  fi
-
-  printf 'Linked qutebrowser Widevine CDM: %s\n' "$target_root"
-}
-
 configure_default_browser() {
-  if ! desktop_file_exists "$qutebrowser_desktop"; then
-    printf 'qutebrowser desktop file not found; skipping default browser setup.\n'
+  if ! desktop_file_exists "$firefox_desktop"; then
+    printf 'Firefox ESR desktop file not found; skipping default browser setup.\n'
     return
   fi
 
-  if command -v xdg-mime >/dev/null 2>&1; then
-    xdg-mime default "$qutebrowser_desktop" \
-      text/html \
-      application/xhtml+xml \
-      x-scheme-handler/http \
-      x-scheme-handler/https
-  fi
+  set_xdg_mime_defaults "$firefox_desktop" "Firefox ESR" \
+    text/html \
+    application/xhtml+xml \
+    x-scheme-handler/http \
+    x-scheme-handler/https \
+    x-scheme-handler/about \
+    x-scheme-handler/unknown
 
   if command -v xdg-settings >/dev/null 2>&1; then
-    xdg-settings set default-web-browser "$qutebrowser_desktop" >/dev/null 2>&1 || true
+    xdg-settings set default-web-browser "$firefox_desktop" >/dev/null 2>&1 || true
   fi
 }
 
@@ -617,7 +556,7 @@ prepare_stow_targets() {
   qutebrowser_source="$dotfiles_dir/.config/qutebrowser"
 
   if [ -L "$qutebrowser_target" ]; then
-    if [ "$(readlink -f "$qutebrowser_target")" = "$qutebrowser_source" ]; then
+    if [ "$(readlink -m "$qutebrowser_target")" = "$qutebrowser_source" ]; then
       unlink "$qutebrowser_target"
     else
       printf 'Warning: %s is a symlink not managed by this repo; leaving it alone.\n' "$qutebrowser_target" >&2
@@ -625,7 +564,15 @@ prepare_stow_targets() {
     fi
   fi
 
-  mkdir -p "$qutebrowser_target"
+  if [ -d "$qutebrowser_target" ]; then
+    for name in config.py .gitignore __pycache__; do
+      link_path="$qutebrowser_target/$name"
+
+      if [ -L "$link_path" ] && [ "$(dirname "$(readlink -m "$link_path")")" = "$qutebrowser_source" ]; then
+        unlink "$link_path"
+      fi
+    done
+  fi
 }
 
 refuse_root_run
@@ -657,8 +604,6 @@ fi
 if [ "$install_catppuccin" -eq 1 ]; then
   install_catppuccin_user_themes
 fi
-
-configure_qutebrowser_widevine
 
 if [ -x "$HOME/.local/bin/i3-apply-theme" ]; then
   "$HOME/.local/bin/i3-apply-theme"
