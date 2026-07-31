@@ -45,6 +45,44 @@ modes_for() {
         '
 }
 
+preferred_mode_for() {
+        output="$1"
+        xrandr --query | awk -v output="$output" '
+                $1 == output { scanning = 1; next }
+                /^[^[:space:]]/ { scanning = 0 }
+                scanning && $1 ~ /^[0-9]+x[0-9]+$/ {
+                        if (fallback == "") {
+                                fallback = $1
+                        }
+
+                        for (i = 2; i <= NF; i++) {
+                                if ($i ~ /\+/) {
+                                        print $1
+                                        found = 1
+                                        exit
+                                }
+                        }
+                }
+                END {
+                        if (!found) {
+                                print fallback
+                        }
+                }
+        '
+}
+
+default_scale_for_mode() {
+        case "$1" in
+                3840x2160|4096x2160) printf '0.8000\n' ;;
+                *) printf '1.0000\n' ;;
+        esac
+}
+
+default_scale_for_output() {
+        mode=$(preferred_mode_for "$1")
+        default_scale_for_mode "$mode"
+}
+
 common_mode() {
         left="$1"
         right="$2"
@@ -94,7 +132,8 @@ apply_laptop() {
                 exit 1
         fi
 
-        set -- --output "$internal" --auto --primary
+        internal_scale=$(default_scale_for_output "$internal")
+        set -- --output "$internal" --auto --scale "${internal_scale}x${internal_scale}" --primary
         for output in $(all_outputs); do
                 [ "$output" = "$internal" ] || set -- "$@" --output "$output" --off
         done
@@ -106,7 +145,8 @@ apply_laptop() {
 apply_external() {
         external=$(require_external) || exit 1
 
-        set -- --output "$external" --auto --primary
+        external_scale=$(default_scale_for_output "$external")
+        set -- --output "$external" --auto --scale "${external_scale}x${external_scale}" --primary
         for output in $(all_outputs); do
                 [ "$output" = "$external" ] || set -- "$@" --output "$output" --off
         done
@@ -124,9 +164,11 @@ apply_dock() {
                 return
         fi
 
-        set -- --output "$external" --auto --primary
+        external_scale=$(default_scale_for_output "$external")
+        set -- --output "$external" --auto --scale "${external_scale}x${external_scale}" --primary
         if [ -n "$internal" ]; then
-                set -- "$@" --output "$internal" --auto --left-of "$external"
+                internal_scale=$(default_scale_for_output "$internal")
+                set -- "$@" --output "$internal" --auto --scale "${internal_scale}x${internal_scale}" --left-of "$external"
         fi
 
         for output in $(all_outputs); do
@@ -148,7 +190,10 @@ apply_extend() {
                 return
         fi
 
-        set -- --output "$internal" --auto --primary --output "$external" --auto --right-of "$internal"
+        internal_scale=$(default_scale_for_output "$internal")
+        external_scale=$(default_scale_for_output "$external")
+        set -- --output "$internal" --auto --scale "${internal_scale}x${internal_scale}" --primary \
+                --output "$external" --auto --scale "${external_scale}x${external_scale}" --right-of "$internal"
         for output in $(all_outputs); do
                 [ "$output" = "$internal" ] && continue
                 [ "$output" = "$external" ] && continue
@@ -174,7 +219,9 @@ apply_mirror() {
                 exit 1
         fi
 
-        set -- --output "$internal" --mode "$mode" --primary --output "$external" --mode "$mode" --same-as "$internal"
+        scale=$(default_scale_for_mode "$mode")
+        set -- --output "$internal" --mode "$mode" --scale "${scale}x${scale}" --primary \
+                --output "$external" --mode "$mode" --scale "${scale}x${scale}" --same-as "$internal"
         for output in $(all_outputs); do
                 [ "$output" = "$internal" ] && continue
                 [ "$output" = "$external" ] && continue

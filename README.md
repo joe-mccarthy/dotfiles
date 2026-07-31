@@ -55,7 +55,7 @@ Radio uses `mpv`, with `yt-dlp` for YouTube, and local-only `~/.config/i3/radio-
 
 Notes open in kitty with a terminal editor by default, preferring `nvim`, `vim`, then `vi`. Set `I3_NOTES_EDITOR` to override that.
 
-Monitor layouts are handled by `.local/bin/i3-monitor-layout`. Use `$mod+p` or the display key to open the layout menu, including the monitor scaling submenu for active displays. `$mod+Shift+p` opens the scaling menu directly. Startup runs the `auto` layout, which uses the laptop display by itself when undocked and makes the external display primary when one is connected. i3bar is pinned to the current primary output.
+Monitor layouts are handled by `.local/bin/i3-monitor-layout`. Use `$mod+p` or the display key to open the layout menu, including the monitor scaling submenu for active displays. `$mod+Shift+p` opens the scaling menu directly. Startup runs the `auto` layout, which uses the laptop display by itself when undocked and makes the external display primary when one is connected. Layouts default 3840x2160 and 4096x2160 outputs to 125% UI scaling and other modes to native scaling; the scaling menu can override that until the next layout change or i3 reload. i3bar is pinned to the current primary output.
 
 Network and Bluetooth helpers are handled by `.local/bin/i3-network-menu` and `.local/bin/i3-bluetooth-menu`. Use `$mod+Shift+w` for network actions and `$mod+Shift+b` for Bluetooth actions.
 
