@@ -49,7 +49,7 @@ Clipboard history is handled by CopyQ with a rofi picker and no tray icon. Use `
 
 The rofi control center is available with `$mod+F12`. It links the app launcher, window switcher, scratchpad terminal, keybinding help, notes, media controls, radio, monitor controls, keyboard layout, audio, network, Bluetooth, clipboard, notification, screenshot, Pomodoro timer, power, lock, and i3 reload actions. Use `$mod+F11` to search the cheat sheet directly, `$mod+Shift+Return` to toggle the floating scratchpad kitty terminal, `$mod+o` for Markdown notes, `$mod+m` for media controls, and `$mod+Shift+m` for radio. New scratchpad terminals start in the focused terminal's working directory when that can be detected.
 
-Media controls use `playerctl` for MPRIS-compatible apps such as browsers, Spotify, and VLC. The i3blocks media block appears only while something is playing and supports click controls.
+Media controls use `playerctl` for MPRIS-compatible apps such as browsers, Spotify, and VLC. The i3blocks media block appears only while something is playing, shows only the site domain for browser playback, and supports click controls.
 
 Radio uses `mpv`, with `yt-dlp` for YouTube, and local-only `~/.config/i3/radio-stations.tsv`. Add entries as `Name<TAB>Stream or playlist URL`; YouTube playlist URLs are launched audio-only. The repo only keeps `radio/stations.tsv.example`. YouTube changes often, so update `yt-dlp` if those entries stop resolving. The radio block appears only while radio is playing, and media next/previous controls step through playlist entries when radio is the active playback context.
 

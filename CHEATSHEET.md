@@ -81,7 +81,7 @@
 | `XF86AudioPrev` | Previous track |
 | `XF86AudioStop` | Stop playback |
 
-When music is playing, the status bar media block appears. Left click toggles play/pause, middle click or scroll up skips next, right click opens the media menu, and scroll down goes previous.
+When music is playing, the status bar media block appears. Browser playback is labelled with only the site domain. Left click toggles play/pause, middle click or scroll up skips next, right click opens the media menu, and scroll down goes previous.
 
 ## Radio
 

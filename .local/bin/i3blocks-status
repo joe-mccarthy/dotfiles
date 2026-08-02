@@ -452,6 +452,66 @@ short_text() {
         fi
 }
 
+is_browser_player() {
+        player_name=$(printf '%s\n' "$1" | tr '[:upper:]' '[:lower:]')
+
+        case "$player_name" in
+                firefox|firefox.*|librewolf|librewolf.*|floorp|floorp.*|zen|zen.*|\
+                        chromium|chromium.*|chrome|chrome.*|google-chrome|google-chrome.*|\
+                        brave|brave.*|brave-browser|brave-browser.*|vivaldi|vivaldi.*|\
+                        opera|opera.*|microsoft-edge|microsoft-edge.*|edge|edge.*|\
+                        qutebrowser|qutebrowser.*)
+                        return 0
+                        ;;
+        esac
+
+        return 1
+}
+
+url_domain() {
+        url="$1"
+
+        case "$url" in
+                *://*)
+                        authority=${url#*://}
+                        ;;
+                //*)
+                        authority=${url#//}
+                        ;;
+                *)
+                        return 1
+                        ;;
+        esac
+
+        authority=${authority%%/*}
+        authority=${authority%%\?*}
+        authority=${authority%%\#*}
+        authority=${authority##*@}
+
+        case "$authority" in
+                \[*\]*)
+                        domain=${authority#\[}
+                        domain=${domain%%\]*}
+                        ;;
+                *)
+                        domain=${authority%%:*}
+                        ;;
+        esac
+
+        domain=$(printf '%s\n' "$domain" | tr '[:upper:]' '[:lower:]')
+        domain=${domain#www.}
+        [ -n "$domain" ] || return 1
+        printf '%s\n' "$domain"
+}
+
+browser_media_domain() {
+        player="$1"
+        is_browser_player "$player" || return 1
+
+        url=$(playerctl -p "$player" metadata xesam:url 2>/dev/null || true)
+        url_domain "$url"
+}
+
 media_block() {
         command -v playerctl >/dev/null 2>&1 || return 0
 
@@ -477,17 +537,22 @@ media_block() {
         [ -n "$status" ] || return 0
         [ "$status" = "Playing" ] || return 0
 
-        artist=$(playerctl -p "$player" metadata artist 2>/dev/null || true)
-        title=$(playerctl -p "$player" metadata title 2>/dev/null || true)
-
-        if [ -n "$artist" ] && [ -n "$title" ]; then
-                track="$artist - $title"
-        elif [ -n "$title" ]; then
-                track="$title"
-        elif [ -n "$artist" ]; then
-                track="$artist"
+        if is_browser_player "$player"; then
+                track=$(browser_media_domain "$player")
+                track=${track:-${player%%.*}}
         else
-                track="$player"
+                artist=$(playerctl -p "$player" metadata artist 2>/dev/null || true)
+                title=$(playerctl -p "$player" metadata title 2>/dev/null || true)
+
+                if [ -n "$artist" ] && [ -n "$title" ]; then
+                        track="$artist - $title"
+                elif [ -n "$title" ]; then
+                        track="$title"
+                elif [ -n "$artist" ]; then
+                        track="$artist"
+                else
+                        track="$player"
+                fi
         fi
 
         track=$(short_text "$track" 46)
