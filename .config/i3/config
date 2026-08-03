@@ -41,6 +41,7 @@ title_align center
 for_window [all] title_format "  %title  "
 for_window [all] title_window_icon on
 for_window [all] title_window_icon padding 6
+for_window [class="^firefox(-esr)?$"] border pixel 2
 
 # Window colours: border, background, text, indicator, child border.
 client.focused          $ctp_mauve    $ctp_base   $ctp_text     $ctp_mauve    $ctp_mauve
