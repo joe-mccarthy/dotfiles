@@ -107,11 +107,13 @@ primary_network_line() {
         '
 }
 
-device_ip() {
-        nmcli -g IP4.ADDRESS device show "$1" 2>/dev/null | awk 'NR == 1 {
-                sub(/\/.*/, "", $0)
-                print
-        }'
+active_wifi_name() {
+        LC_ALL=C nmcli -t --escape no -f ACTIVE,SSID device wifi list ifname "$1" --rescan no 2>/dev/null | awk '
+                index($0, "yes:") == 1 {
+                        print substr($0, 5)
+                        exit
+                }
+        '
 }
 
 network_block() {
@@ -121,10 +123,10 @@ network_block() {
                         ;;
         esac
 
-        vpn=$(active_vpn)
         line=$(primary_network_line)
 
         if [ -z "$line" ]; then
+                vpn=$(active_vpn)
                 if [ -n "$vpn" ]; then
                         emit "NET VPN $vpn" "VPN" "$warn"
                 else
@@ -136,11 +138,12 @@ network_block() {
         device=$(printf '%s\n' "$line" | awk -F: '{ print $1 }')
         type=$(printf '%s\n' "$line" | awk -F: '{ print $2 }')
         connection=$(printf '%s\n' "$line" | awk -F: '{ print $4 }')
-        ip_addr=$(device_ip "$device")
 
         case "$type" in
                 wifi)
-                        label="${connection:-WIFI}"
+                        wifi_name=$(active_wifi_name "$device")
+                        wifi_name="${wifi_name:-$connection}"
+                        label="WIFI${wifi_name:+ $wifi_name}"
                         ;;
                 ethernet)
                         label="LAN"
@@ -150,15 +153,7 @@ network_block() {
                         ;;
         esac
 
-        status="NET $label"
-        [ -n "$ip_addr" ] && status="$status $ip_addr"
-        [ -n "$vpn" ] && status="$status VPN"
-
-        if [ -n "$ip_addr" ]; then
-                emit "$status" "NET" "$good"
-        else
-                emit "$status" "NET" "$warn"
-        fi
+        emit "$label" "$label" "$good"
 }
 
 read_battery_value() {

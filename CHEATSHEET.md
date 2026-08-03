@@ -23,21 +23,17 @@
 | `Mod+d` | App launcher |
 | `Mod+Shift+d` | Run command launcher |
 | `Mod+Tab` | Window switcher |
-| `Mod+F12` | Unified control center |
-| `Mod+F11` | Search this cheat sheet |
+| `Mod+u` | Unified control center |
+| `Mod+Shift+/` | Search this cheat sheet |
 | `Mod+o` | Notes menu |
 | `Mod+Shift+o` | Quick note |
 | `Mod+m` | Media controller |
 | `Mod+Shift+m` | Radio menu |
 | `Mod+p` | Monitor layout menu, including scaling |
 | `Mod+Shift+p` | Monitor scaling menu |
-| `XF86Display` | Monitor layout menu |
 | `Mod+Shift+i` | Keyboard layout menu |
-| `XF86Keyboard` | Keyboard layout menu |
 | `Mod+Shift+w` | Network menu |
-| `XF86WLAN` | Network menu |
 | `Mod+Shift+b` | Bluetooth menu |
-| `XF86Bluetooth` | Bluetooth menu |
 | `Mod+Shift+a` | Audio device menu |
 
 ## Clipboard And Notifications
@@ -58,28 +54,21 @@
 
 | Binding | Action |
 | --- | --- |
-| `XF86AudioRaiseVolume` | Volume up 5% |
-| `XF86AudioLowerVolume` | Volume down 5% |
-| `XF86AudioMute` | Toggle output mute |
-| `XF86AudioMicMute` | Toggle mic mute |
-| `Mod+F1` | Toggle output mute |
-| `Mod+F2` | Volume down 5% |
-| `Mod+F3` | Volume up 5% |
-| `Mod+Shift+F10` | Toggle mic mute |
+| `Mod+Control+m` | Toggle output mute |
+| `Mod+Control+-` | Volume down 5% |
+| `Mod+Control+=` | Volume up 5% |
+| `Mod+Control+Shift+m` | Toggle mic mute |
 
 ## Media
 
 | Binding | Action |
 | --- | --- |
 | `Mod+m` | Media controller |
-| `Mod+F7` | Previous track |
-| `Mod+F8` | Play or pause active media player |
-| `Mod+F9` | Next track |
-| `Mod+Shift+F9` | Stop playback |
-| `XF86AudioPlay` | Play or pause active media player |
-| `XF86AudioNext` | Next track |
-| `XF86AudioPrev` | Previous track |
-| `XF86AudioStop` | Stop playback |
+| `Mod+Control+,` | Previous track |
+| `Mod+Control+Space` | Play or pause active media player |
+| `Mod+Control+p` | Pause active media player |
+| `Mod+Control+.` | Next track |
+| `Mod+Control+s` | Stop playback |
 
 When music is playing, the status bar media block appears. Browser playback is labelled with only the site domain. Left click toggles play/pause, middle click or scroll up skips next, right click opens the media menu, and scroll down goes previous.
 
@@ -106,12 +95,12 @@ Notes are stored as Markdown under `~/.local/share/notes`.
 
 | Binding | Action |
 | --- | --- |
-| `Print` | Copy selected area screenshot |
-| `Shift+Print` | Copy full screenshot |
-| `Control+Print` | Copy focused window screenshot |
-| `Mod+Print` | Save selected area screenshot |
-| `Mod+Shift+Print` | Save full screenshot |
-| `Mod+Control+Print` | Save focused window screenshot |
+| `Mod+Control+a` | Copy selected area screenshot |
+| `Mod+Control+f` | Copy full screenshot |
+| `Mod+Control+w` | Copy focused window screenshot |
+| `Mod+Control+Shift+a` | Save selected area screenshot |
+| `Mod+Control+Shift+f` | Save full screenshot |
+| `Mod+Control+Shift+w` | Save focused window screenshot |
 
 ## Windows
 
