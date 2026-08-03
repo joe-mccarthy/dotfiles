@@ -6,7 +6,14 @@ local_bin="$local_root/usr/bin/picom"
 local_lib="$local_root/usr/lib/x86_64-linux-gnu"
 log_file="${XDG_RUNTIME_DIR:-/tmp}/picom.log"
 
-pkill -x picom 2>/dev/null || true
+if pkill -x picom 2>/dev/null; then
+        attempts=0
+        while pgrep -x picom >/dev/null 2>&1; do
+                attempts=$((attempts + 1))
+                [ "$attempts" -ge 40 ] && break
+                sleep 0.05
+        done
+fi
 
 if command -v picom >/dev/null 2>&1; then
         exec picom --config "$config" --log-level=warn --log-file="$log_file"
