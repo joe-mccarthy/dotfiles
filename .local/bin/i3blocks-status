@@ -40,6 +40,44 @@ emit() {
         esac
 }
 
+metric_is_visible() {
+        value="$1"
+        show_at="$2"
+        hide_below="$3"
+        state_file="$4"
+        required_samples="${5:-1}"
+        visible=0
+        high_samples=0
+
+        if [ -r "$state_file" ]; then
+                read -r saved_visible saved_high_samples < "$state_file"
+                case "$saved_visible" in
+                        0|1) visible="$saved_visible" ;;
+                esac
+                case "$saved_high_samples" in
+                        ''|*[!0-9]*) ;;
+                        *) high_samples="$saved_high_samples" ;;
+                esac
+        fi
+
+        if [ "$visible" -eq 1 ]; then
+                if [ "$value" -lt "$hide_below" ]; then
+                        visible=0
+                        high_samples=0
+                fi
+        elif [ "$value" -ge "$show_at" ]; then
+                high_samples=$((high_samples + 1))
+                if [ "$high_samples" -ge "$required_samples" ]; then
+                        visible=1
+                fi
+        else
+                high_samples=0
+        fi
+
+        printf '%s %s\n' "$visible" "$high_samples" > "$state_file"
+        [ "$visible" -eq 1 ]
+}
+
 notify_user() {
         if command -v notify-send >/dev/null 2>&1; then
                 notify-send -a i3 "$1" "$2"
@@ -251,12 +289,14 @@ disk_block() {
         usage=$(df -P / 2>/dev/null | awk 'NR == 2 { gsub(/%/, "", $5); print $5 }')
         [ -n "$usage" ] || usage=0
 
-        if [ "$usage" -ge 90 ] 2>/dev/null; then
+        if ! metric_is_visible "$usage" 90 85 "$state_dir/disk-visibility"; then
+                return
+        fi
+
+        if [ "$usage" -ge 95 ] 2>/dev/null; then
                 color="$bad"
-        elif [ "$usage" -ge 80 ] 2>/dev/null; then
-                color="$warn"
         else
-                color="$text"
+                color="$warn"
         fi
 
         emit "DISK ${usage}%" "DSK" "$color"
@@ -274,12 +314,14 @@ memory_block() {
         ' /proc/meminfo)
         [ -n "$usage" ] || usage=0
 
+        if ! metric_is_visible "$usage" 80 75 "$state_dir/memory-visibility"; then
+                return
+        fi
+
         if [ "$usage" -ge 90 ] 2>/dev/null; then
                 color="$bad"
-        elif [ "$usage" -ge 75 ] 2>/dev/null; then
-                color="$warn"
         else
-                color="$text"
+                color="$warn"
         fi
 
         emit "MEM ${usage}%" "MEM" "$color"
@@ -306,7 +348,6 @@ cpu_block() {
         printf '%s %s\n' "$total" "$idle" > "$state_file"
 
         if [ -z "$prev_total" ] || [ "$total" -le "$prev_total" ] 2>/dev/null; then
-                emit "CPU --" "CPU" "$muted"
                 return
         fi
 
@@ -314,12 +355,15 @@ cpu_block() {
         delta_idle=$((idle - prev_idle))
         usage=$(((delta_total - delta_idle) * 100 / delta_total))
 
-        if [ "$usage" -ge 90 ] 2>/dev/null; then
+        # Require two five-second samples so brief spikes do not flash in the bar.
+        if ! metric_is_visible "$usage" 80 70 "$state_dir/cpu-visibility" 2; then
+                return
+        fi
+
+        if [ "$usage" -ge 95 ] 2>/dev/null; then
                 color="$bad"
-        elif [ "$usage" -ge 75 ] 2>/dev/null; then
-                color="$warn"
         else
-                color="$text"
+                color="$warn"
         fi
 
         emit "CPU ${usage}%" "CPU" "$color"
@@ -328,23 +372,23 @@ cpu_block() {
 load_block() {
         load=$(awk '{ print $1 }' /proc/loadavg)
         cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1\n')
-        level=$(awk -v current_load="$load" -v cores="$cores" 'BEGIN {
-                if (current_load >= cores * 1.5) print "bad"
-                else if (current_load >= cores) print "warn"
-                else print "ok"
+        case "$cores" in
+                ''|0|*[!0-9]*) cores=1 ;;
+        esac
+        # A value of 100 means one runnable task per online logical CPU.
+        load_percent=$(awk -v current_load="$load" -v cores="$cores" 'BEGIN {
+                printf "%d", (current_load * 100) / cores
         }')
 
-        case "$level" in
-                bad)
-                        color="$bad"
-                        ;;
-                warn)
-                        color="$warn"
-                        ;;
-                *)
-                        color="$text"
-                        ;;
-        esac
+        if ! metric_is_visible "$load_percent" 100 80 "$state_dir/load-visibility"; then
+                return
+        fi
+
+        if [ "$load_percent" -ge 150 ]; then
+                color="$bad"
+        else
+                color="$warn"
+        fi
 
         emit "LOAD $load" "LOAD" "$color"
 }
