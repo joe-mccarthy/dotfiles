@@ -118,7 +118,7 @@ notifications_block() {
                         elif [ "$history" -gt 0 ] 2>/dev/null; then
                                 emit "NOT ${history}h" "NOT" "$muted"
                         else
-                                emit "NOT clear" "NOT" "$good"
+                                return 0
                         fi
                         ;;
         esac
