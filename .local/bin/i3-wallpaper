@@ -1,35 +1,224 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-config="${XDG_CONFIG_HOME:-$HOME/.config}/i3/wallpaper"
-default="$HOME/.config/wallpapers/ghibli-background-1.png"
-theme_env="$HOME/.config/i3/theme.env"
+set -uo pipefail
 
-if [ -r "$theme_env" ]; then
-    set -a
-    # shellcheck disable=SC1090
-    . "$theme_env"
-    set +a
+config_root="${XDG_CONFIG_HOME:-$HOME/.config}"
+selection_file="$config_root/i3/wallpaper"
+theme_env="$config_root/i3/theme.env"
+rofi_theme="$config_root/rofi/i3-wallpaper.rasi"
+
+if [[ -r $theme_env ]]; then
+	set -a
+	# shellcheck disable=SC1090
+	. "$theme_env"
+	set +a
 fi
 
+wallpaper_dir="${I3_WALLPAPER_DIR:-$config_root/wallpapers}"
+default_wallpaper="$wallpaper_dir/ghibli-background-1.png"
 fallback_color="${CTP_BASE:-#303446}"
+wallpapers=()
 
-wallpaper="${1:-}"
-if [ -z "$wallpaper" ] && [ -r "$config" ]; then
-    wallpaper="$(sed -n '1{s/[[:space:]]*$//;p;q;}' "$config")"
-fi
+notify() {
+	if command -v dunstify >/dev/null 2>&1; then
+		dunstify "$1" "$2" >/dev/null 2>&1 || true
+	fi
+}
 
-[ -n "$wallpaper" ] || wallpaper="$default"
+expand_home() {
+	local path="$1"
+	# This prefix is intentionally stored and matched as a literal tilde.
+	# shellcheck disable=SC2088
+	local home_prefix='~/'
 
-case "$wallpaper" in
-    ~/*) wallpaper="$HOME/${wallpaper#"~/"}" ;;
+	case "$path" in
+	"$home_prefix"*) printf '%s/%s\n' "$HOME" "${path#"$home_prefix"}" ;;
+	*) printf '%s\n' "$path" ;;
+	esac
+}
+
+saved_wallpaper() {
+	local wallpaper=""
+
+	if [[ -r $selection_file ]]; then
+		IFS= read -r wallpaper <"$selection_file" || true
+	fi
+
+	[[ -n $wallpaper ]] || wallpaper="$default_wallpaper"
+	expand_home "$wallpaper"
+}
+
+apply_wallpaper() {
+	local wallpaper="$1"
+
+	if [[ -r $wallpaper ]] && command -v feh >/dev/null 2>&1; then
+		feh --no-fehbg --bg-fill "$wallpaper"
+		return
+	fi
+
+	if command -v xsetroot >/dev/null 2>&1; then
+		xsetroot -solid "$fallback_color"
+		return
+	fi
+
+	return 1
+}
+
+persist_wallpaper() {
+	local wallpaper="$1"
+	local persisted="$wallpaper"
+
+	if [[ $wallpaper == "$HOME/"* ]]; then
+		# Keep the saved path portable across home-directory locations.
+		# shellcheck disable=SC2088
+		printf -v persisted '~/%s' "${wallpaper#"$HOME/"}"
+	fi
+
+	mkdir -p "$(dirname "$selection_file")"
+	printf '%s\n' "$persisted" >"$selection_file"
+}
+
+collect_wallpapers() {
+	local wallpaper
+
+	wallpapers=()
+	[[ -d $wallpaper_dir ]] || return
+
+	while IFS= read -r -d '' wallpaper; do
+		[[ -r $wallpaper ]] && wallpapers+=("$wallpaper")
+	done < <(
+		find -H "$wallpaper_dir" \
+			\( -type f -o -type l \) \
+			\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \
+			-o -iname '*.webp' -o -iname '*.bmp' -o -iname '*.gif' \
+			-o -iname '*.tif' -o -iname '*.tiff' \) \
+			-print0 2>/dev/null | sort -z -f
+	)
+}
+
+render_rofi_entries() {
+	local wallpaper label
+
+	for wallpaper in "${wallpapers[@]}"; do
+		label="${wallpaper#"$wallpaper_dir"/}"
+		printf '%s\0icon\x1f%s\n' "$label" "$wallpaper"
+	done
+}
+
+set_wallpaper() {
+	local wallpaper="$1"
+
+	if [[ ! -r $wallpaper ]]; then
+		notify "Wallpaper" "Cannot read $(basename "$wallpaper")"
+		return 1
+	fi
+
+	if ! command -v feh >/dev/null 2>&1; then
+		notify "Wallpaper" "feh is required to apply wallpapers"
+		return 1
+	fi
+
+	if ! apply_wallpaper "$wallpaper"; then
+		notify "Wallpaper" "Failed to apply $(basename "$wallpaper")"
+		return 1
+	fi
+
+	if ! persist_wallpaper "$wallpaper"; then
+		notify "Wallpaper" "Applied, but could not save the selection"
+		return 1
+	fi
+
+	notify "Wallpaper" "$(basename "$wallpaper")"
+}
+
+wallpaper_menu() {
+	local current current_index=-1 index selected_index
+	local -a rofi_args
+
+	if ! command -v rofi >/dev/null 2>&1; then
+		notify "Wallpaper" "rofi is required for the wallpaper picker"
+		return 1
+	fi
+
+	mkdir -p "$wallpaper_dir"
+	collect_wallpapers
+
+	if ((${#wallpapers[@]} == 0)); then
+		notify "Wallpaper" "No images found in $wallpaper_dir"
+		return 1
+	fi
+
+	current="$(saved_wallpaper)"
+	for index in "${!wallpapers[@]}"; do
+		if [[ ${wallpapers[$index]} == "$current" ]]; then
+			current_index="$index"
+			break
+		fi
+	done
+
+	rofi_args=(
+		-dmenu
+		-i
+		-no-custom
+		-show-icons
+		-sync
+		-format i
+		-p wallpaper
+		-mesg "Enter applies • Esc cancels • $wallpaper_dir"
+		-window-title "Wallpaper picker"
+		-theme "$rofi_theme"
+	)
+
+	if ((current_index >= 0)); then
+		rofi_args+=(-selected-row "$current_index" -a "$current_index")
+	fi
+
+	if ! selected_index="$(render_rofi_entries | rofi "${rofi_args[@]}")"; then
+		return 0
+	fi
+
+	if [[ ! $selected_index =~ ^[0-9]+$ ]] || ((selected_index >= ${#wallpapers[@]})); then
+		notify "Wallpaper" "Invalid wallpaper selection"
+		return 1
+	fi
+
+	set_wallpaper "${wallpapers[$selected_index]}"
+}
+
+list_wallpapers() {
+	collect_wallpapers
+	printf '%s\n' "${wallpapers[@]}"
+}
+
+usage() {
+	printf 'usage: %s [apply|menu|list|set PATH|PATH]\n' "$0" >&2
+}
+
+case "${1:-apply}" in
+apply)
+	apply_wallpaper "$(saved_wallpaper)"
+	;;
+menu | select)
+	wallpaper_menu
+	;;
+list)
+	list_wallpapers
+	;;
+set)
+	if (($# != 2)); then
+		usage
+		exit 2
+	fi
+	set_wallpaper "$(expand_home "$2")"
+	;;
+-h | --help)
+	usage
+	;;
+*)
+	if (($# != 1)); then
+		usage
+		exit 2
+	fi
+	apply_wallpaper "$(expand_home "$1")"
+	;;
 esac
-
-if [ -r "$wallpaper" ] && command -v feh >/dev/null 2>&1; then
-    exec feh --no-fehbg --bg-fill "$wallpaper"
-fi
-
-if command -v xsetroot >/dev/null 2>&1; then
-    exec xsetroot -solid "$fallback_color"
-fi
-
-exit 1

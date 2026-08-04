@@ -1,0 +1,112 @@
+configuration {
+        show-icons: true;
+        matching: "fuzzy";
+        sort: false;
+        font: "JetBrains Mono 12";
+        location: 0;
+}
+
+* {
+        bg: #292c3c;
+        panel: #303446;
+        panel-alt: #414559;
+        fg: #c6d0f5;
+        muted: #a5adce;
+        accent: #ca9ee6;
+        lavender: #babbf1;
+        border: #626880;
+
+        background-color: transparent;
+        text-color: @fg;
+}
+
+window {
+        width: 82%;
+        location: center;
+        anchor: center;
+        background-color: @bg;
+        border: 2px;
+        border-color: @border;
+        border-radius: 8px;
+        padding: 18px;
+}
+
+mainbox {
+        spacing: 14px;
+}
+
+inputbar {
+        children: [ prompt, entry ];
+        background-color: @panel;
+        border: 1px;
+        border-color: @border;
+        border-radius: 6px;
+        padding: 10px 12px;
+        spacing: 10px;
+}
+
+prompt {
+        text-color: @accent;
+}
+
+entry {
+        placeholder: "Search wallpapers";
+        placeholder-color: @muted;
+}
+
+listview {
+        lines: 2;
+        columns: 3;
+        flow: horizontal;
+        fixed-height: true;
+        fixed-columns: true;
+        dynamic: false;
+        scrollbar: false;
+        spacing: 12px;
+}
+
+element {
+        children: [ element-icon, element-text ];
+        orientation: vertical;
+        background-color: @panel;
+        border: 3px;
+        border-color: transparent;
+        border-radius: 7px;
+        padding: 10px;
+        spacing: 8px;
+        cursor: pointer;
+}
+
+element active.normal {
+        background-color: @panel-alt;
+        border-color: @lavender;
+}
+
+element selected.normal,
+element selected.active {
+        background-color: @panel-alt;
+        border-color: @accent;
+        text-color: @accent;
+}
+
+element-icon {
+        size: 220px;
+        horizontal-align: 0.5;
+        cursor: inherit;
+}
+
+element-text {
+        horizontal-align: 0.5;
+        text-color: inherit;
+        cursor: inherit;
+}
+
+message {
+        background-color: @panel;
+        border-radius: 6px;
+        padding: 9px 12px;
+}
+
+textbox {
+        text-color: @muted;
+}

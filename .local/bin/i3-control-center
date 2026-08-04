@@ -27,6 +27,7 @@ Apps
 Run command
 Windows
 Scratchpad terminal
+Wallpaper
 Keybinding cheat sheet
 Notes
 Media
@@ -78,6 +79,7 @@ menu() {
                 "Run command") "$HOME/.local/bin/i3-app-launcher" run ;;
                 Windows) "$HOME/.local/bin/i3-app-launcher" window ;;
                 "Scratchpad terminal") "$HOME/.local/bin/i3-scratchpad-terminal" ;;
+                Wallpaper) "$HOME/.local/bin/i3-wallpaper" menu ;;
                 "Keybinding cheat sheet") "$HOME/.local/bin/i3-cheatsheet-menu" ;;
                 Notes) "$HOME/.local/bin/i3-notes" ;;
                 Media) "$HOME/.local/bin/i3-media-controller" ;;

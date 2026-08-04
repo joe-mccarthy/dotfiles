@@ -24,6 +24,7 @@
 | `Mod+Shift+d` | Run command launcher |
 | `Mod+Tab` | Window switcher |
 | `Mod+u` | Unified control center |
+| `Mod+Shift+g` | Wallpaper gallery |
 | `Mod+Shift+/` | Search this cheat sheet |
 | `Mod+o` | Notes menu |
 | `Mod+Shift+o` | Quick note |
