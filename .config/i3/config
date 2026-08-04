@@ -41,6 +41,8 @@ title_align center
 for_window [all] title_format "  %title  "
 for_window [all] title_window_icon on
 for_window [all] title_window_icon padding 6
+# Preserve i3's focus-coloured outline for clients that hide their titlebar.
+for_window [class="^kitty$"] border pixel 2
 for_window [class="^firefox(-esr)?$"] border pixel 2
 
 # Window colours: border, background, text, indicator, child border.
