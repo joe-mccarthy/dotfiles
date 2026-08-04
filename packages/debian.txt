@@ -94,6 +94,7 @@ fontconfig
 fonts-dejavu-core
 fonts-cantarell
 fonts-jetbrains-mono
+fonts-font-awesome
 fonts-noto-color-emoji
 fonts-powerline
 

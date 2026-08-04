@@ -88,7 +88,7 @@ VS Code is installed through apt as the `code` package. `init.sh` configures the
 Install the terminal toolchain manually with:
 
 ```sh
-sudo apt-get install starship eza bat fzf fd-find ripgrep btop zoxide direnv tree ncdu duf hyperfine shellcheck shfmt lazygit git-delta glow procs neovim tmux fastfetch fonts-jetbrains-mono fonts-powerline fonts-noto-color-emoji
+sudo apt-get install starship eza bat fzf fd-find ripgrep btop zoxide direnv tree ncdu duf hyperfine shellcheck shfmt lazygit git-delta glow procs neovim tmux fastfetch fonts-jetbrains-mono fonts-font-awesome fonts-powerline fonts-noto-color-emoji
 ```
 
 ## Backup And Restore

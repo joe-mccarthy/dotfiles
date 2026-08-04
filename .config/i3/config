@@ -14,6 +14,11 @@ set $mod Mod4
 # Font for window titles. The bar uses its own font below.
 font pango:JetBrains Mono 10
 
+# Keep tiled clients visually consistent while retaining useful titlebars on
+# floating windows and dialogs.
+default_border pixel 2
+default_floating_border normal 2
+
 # Catppuccin Frappe palette.
 set $ctp_rosewater #f2d5cf
 set $ctp_pink      #f4b8e4
@@ -41,9 +46,6 @@ title_align center
 for_window [all] title_format "  %title  "
 for_window [all] title_window_icon on
 for_window [all] title_window_icon padding 6
-# Preserve i3's focus-coloured outline for clients that hide their titlebar.
-for_window [class="^kitty$"] border pixel 2
-for_window [class="^firefox(-esr)?$"] border pixel 2
 
 # Window colours: border, background, text, indicator, child border.
 client.focused          $ctp_mauve    $ctp_base   $ctp_text     $ctp_mauve    $ctp_mauve
@@ -111,6 +113,10 @@ tiling_drag modifier titlebar
 
 # Scratchpad terminal.
 for_window [instance="scratchpad-terminal"] floating enable, sticky enable, border pixel 2, resize set 1200 720, move position center, move scratchpad
+
+# Keep utility windows and Picture-in-Picture out of the tiled layout.
+for_window [class="^(Pavucontrol|Blueman-manager|copyq|CopyQ)$"] floating enable, resize set 960 640, move position center
+for_window [title="^Picture-in-Picture$"] floating enable, sticky enable, border pixel 2, resize set 960 540, move position center
 
 # Spacing between tiled windows and screen edges.
 gaps inner 16px
@@ -307,13 +313,13 @@ bar {
         status_command ~/.local/bin/i3blocks-run -c ~/.config/i3blocks/config
         position top
         output primary
-        font pango:JetBrains Mono 12
+        font pango:JetBrains Mono, FontAwesome 12
         height 32
         padding 0 10px 0 0
         tray_padding 4
         tray_output primary
         workspace_min_width 40
-        separator_symbol "  |  "
+        separator_symbol "  "
 
         colors {
                 background $ctp_mantle

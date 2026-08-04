@@ -2,7 +2,6 @@
 
 theme_env="$HOME/.config/i3/theme.env"
 state_root="${XDG_RUNTIME_DIR:-}"
-block_name="${BLOCK_NAME:-${1:-}}"
 
 if [ -r "$theme_env" ]; then
         set -a
@@ -18,6 +17,33 @@ warn="${CTP_YELLOW:-#e5c890}"
 bad="${CTP_RED:-#e78284}"
 accent="${CTP_MAUVE:-#ca9ee6}"
 
+# Font Awesome 4 glyphs; i3bar uses FontAwesome as a fallback family.
+icon_notifications=""
+icon_dnd=""
+icon_wifi=""
+icon_lan=""
+icon_vpn=""
+icon_network_down=""
+icon_battery_full=""
+icon_battery_three_quarters=""
+icon_battery_half=""
+icon_battery_quarter=""
+icon_battery_empty=""
+icon_charging=""
+icon_disk=""
+icon_memory=""
+icon_cpu=""
+icon_load=""
+icon_volume_high=""
+icon_volume_low=""
+icon_volume_muted=""
+icon_music=""
+icon_radio=""
+icon_mic=""
+icon_mic_muted=""
+icon_time=""
+icon_error=""
+
 if [ -n "$state_root" ] && mkdir -p "$state_root/i3blocks" 2>/dev/null; then
         state_dir="$state_root/i3blocks"
 else
@@ -30,14 +56,7 @@ emit() {
         short_text="${2:-$full_text}"
         color="${3:-$text}"
 
-        case "$block_name" in
-                notifications)
-                        printf '%s\n%s\n%s\n' "$full_text" "$short_text" "$color"
-                        ;;
-                *)
-                        printf ' | %s\n | %s\n%s\n' "$full_text" "$short_text" "$color"
-                        ;;
-        esac
+        printf '  %s\n  %s\n%s\n' "$full_text" "$short_text" "$color"
 }
 
 metric_is_visible() {
@@ -104,19 +123,15 @@ notifications_block() {
         paused=$(dunstctl is-paused 2>/dev/null || printf 'false\n')
         displayed=$(count_notifications displayed)
         waiting=$(count_notifications waiting)
-        history=$(count_notifications history)
-
         case "$paused" in
                 true)
-                        emit "DND ${waiting}" "DND" "$warn"
+                        emit "$icon_dnd ${waiting}" "$icon_dnd" "$warn"
                         ;;
                 *)
                         if [ "$displayed" -gt 0 ] 2>/dev/null; then
-                                emit "NOT ${displayed}" "NOT" "$accent"
+                                emit "$icon_notifications ${displayed}" "$icon_notifications" "$accent"
                         elif [ "$waiting" -gt 0 ] 2>/dev/null; then
-                                emit "NOT ${waiting} queued" "NOT" "$warn"
-                        elif [ "$history" -gt 0 ] 2>/dev/null; then
-                                emit "NOT ${history}h" "NOT" "$muted"
+                                emit "$icon_notifications ${waiting}" "$icon_notifications" "$warn"
                         else
                                 return 0
                         fi
@@ -185,9 +200,9 @@ network_block() {
 
         if [ -z "$line" ]; then
                 if [ -n "$vpn" ]; then
-                        emit "VPN" "VPN" "$warn"
+                        emit "$icon_vpn" "$icon_vpn" "$warn"
                 else
-                        emit "NET down" "NET" "$bad"
+                        emit "$icon_network_down down" "$icon_network_down" "$bad"
                 fi
                 return
         fi
@@ -200,18 +215,18 @@ network_block() {
                 wifi)
                         wifi_name=$(active_wifi_name "$device")
                         wifi_name="${wifi_name:-$connection}"
-                        label="WIFI${wifi_name:+ $wifi_name}"
+                        label="$icon_wifi${wifi_name:+ $wifi_name}"
                         ;;
                 ethernet)
-                        label="LAN"
+                        label="$icon_lan LAN"
                         ;;
                 *)
-                        label="${connection:-$type}"
+                        label="$icon_lan ${connection:-$type}"
                         ;;
         esac
 
-        [ -n "$vpn" ] && label="$label VPN"
-        emit "$label" "$label" "$good"
+        [ -n "$vpn" ] && label="$label $icon_vpn"
+        emit "$label" "${label%% *}" "$good"
 }
 
 read_battery_value() {
@@ -277,17 +292,29 @@ battery_block() {
 
         pct=$(((now_total * 100 + full_total / 2) / full_total))
 
+        if [ "$pct" -le 10 ]; then
+                battery_icon="$icon_battery_empty"
+        elif [ "$pct" -le 35 ]; then
+                battery_icon="$icon_battery_quarter"
+        elif [ "$pct" -le 60 ]; then
+                battery_icon="$icon_battery_half"
+        elif [ "$pct" -le 85 ]; then
+                battery_icon="$icon_battery_three_quarters"
+        else
+                battery_icon="$icon_battery_full"
+        fi
+
         case "$global_status" in
                 Charging)
-                        label="CHR"
+                        label="$icon_charging"
                         color="$good"
                         ;;
                 Full)
-                        label="FULL"
+                        label="$icon_battery_full"
                         color="$good"
                         ;;
                 Discharging)
-                        label="BAT"
+                        label="$battery_icon"
                         if [ "$pct" -le 10 ]; then
                                 color="$bad"
                         elif [ "$pct" -le 20 ]; then
@@ -297,7 +324,7 @@ battery_block() {
                         fi
                         ;;
                 *)
-                        label="BAT"
+                        label="$battery_icon"
                         color="$muted"
                         ;;
         esac
@@ -319,7 +346,7 @@ disk_block() {
                 color="$warn"
         fi
 
-        emit "DISK ${usage}%" "DSK" "$color"
+        emit "$icon_disk ${usage}%" "$icon_disk" "$color"
 }
 
 memory_block() {
@@ -344,7 +371,7 @@ memory_block() {
                 color="$warn"
         fi
 
-        emit "MEM ${usage}%" "MEM" "$color"
+        emit "$icon_memory ${usage}%" "$icon_memory" "$color"
 }
 
 cpu_block() {
@@ -386,7 +413,7 @@ cpu_block() {
                 color="$warn"
         fi
 
-        emit "CPU ${usage}%" "CPU" "$color"
+        emit "$icon_cpu ${usage}%" "$icon_cpu" "$color"
 }
 
 load_block() {
@@ -410,7 +437,7 @@ load_block() {
                 color="$warn"
         fi
 
-        emit "LOAD $load" "LOAD" "$color"
+        emit "$icon_load $load" "$icon_load" "$color"
 }
 
 volume_percent() {
@@ -447,11 +474,16 @@ volume_block() {
         muted_state=$(printf '%s\n' "$status" | awk '{ print $2 }')
 
         if [ -z "$pct" ]; then
-                emit "VOL n/a" "VOL" "$muted"
+                emit "$icon_volume_muted n/a" "$icon_volume_muted" "$muted"
         elif [ "$muted_state" = "muted" ]; then
-                emit "VOL muted" "VOL" "$warn"
+                emit "$icon_volume_muted muted" "$icon_volume_muted" "$warn"
         else
-                emit "VOL ${pct}%" "VOL" "$text"
+                if [ "$pct" -le 40 ]; then
+                        volume_icon="$icon_volume_low"
+                else
+                        volume_icon="$icon_volume_high"
+                fi
+                emit "$volume_icon ${pct}%" "$volume_icon" "$text"
         fi
 }
 
@@ -616,7 +648,7 @@ media_block() {
 
         track=$(short_text "$track" 46)
 
-        emit "MUS $track" "MUS" "$accent"
+        emit "$icon_music $track" "$icon_music" "$accent"
 }
 
 radio_block() {
@@ -664,9 +696,9 @@ radio_block() {
         fi
 
         if [ -e "$radio_paused_file" ]; then
-                emit "RAD pause $(short_text "$station" 30)" "RAD" "$warn"
+                emit "$icon_radio pause $(short_text "$station" 30)" "$icon_radio" "$warn"
         else
-                emit "RAD $(short_text "$station" 36)" "RAD" "$accent"
+                emit "$icon_radio $(short_text "$station" 36)" "$icon_radio" "$accent"
         fi
 }
 
@@ -682,16 +714,16 @@ mic_block() {
         muted_state=$(printf '%s\n' "$status" | awk '{ print $2 }')
 
         if [ -z "$pct" ]; then
-                emit "MIC n/a" "MIC" "$muted"
+                emit "$icon_mic_muted n/a" "$icon_mic_muted" "$muted"
         elif [ "$muted_state" = "muted" ]; then
-                emit "MIC muted" "MIC" "$warn"
+                emit "$icon_mic_muted muted" "$icon_mic_muted" "$warn"
         else
-                emit "MIC ${pct}%" "MIC" "$text"
+                emit "$icon_mic ${pct}%" "$icon_mic" "$text"
         fi
 }
 
 time_block() {
-        emit "$(date '+%a %d %b %H:%M')" "TIME" "$text"
+        emit "$icon_time $(date '+%a %d %b %H:%M')" "$icon_time" "$text"
 }
 
 case "${1:-}" in
@@ -733,7 +765,7 @@ case "${1:-}" in
                 ;;
         *)
                 notify_user "i3blocks" "Unknown block: ${1:-empty}"
-                emit "ERR ${1:-block}" "ERR" "$bad"
+                emit "$icon_error ${1:-block}" "$icon_error" "$bad"
                 exit 1
                 ;;
 esac

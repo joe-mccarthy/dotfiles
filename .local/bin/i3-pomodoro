@@ -17,6 +17,8 @@ muted="${CTP_OVERLAY0:-#737994}"
 good="${CTP_GREEN:-#a6d189}"
 warn="${CTP_YELLOW:-#e5c890}"
 bad="${CTP_RED:-#e78284}"
+icon_timer=""
+icon_break=""
 
 if [ -n "$state_root" ] && mkdir -p "$state_root/i3-pomodoro" 2>/dev/null; then
         state_dir="$state_root/i3-pomodoro"
@@ -79,11 +81,11 @@ save_state() {
 
 mode_label() {
         case "$1" in
-                focus) printf 'POM\n' ;;
-                break) printf 'BRK\n' ;;
-                long_break) printf 'LBRK\n' ;;
-                custom) printf 'TMR\n' ;;
-                *) printf 'POM\n' ;;
+                focus) printf '%s\n' "$icon_timer" ;;
+                break) printf '%s\n' "$icon_break" ;;
+                long_break) printf '%s\n' "$icon_break" ;;
+                custom) printf '%s\n' "$icon_timer" ;;
+                *) printf '%s\n' "$icon_timer" ;;
         esac
 }
 
@@ -168,7 +170,8 @@ current_display() {
 status_block() {
         handle_click
         current_display
-        printf ' | %s\n | %s\n%s\n' "$display_text" "$label" "$display_color"
+        [ "$status" = "idle" ] && return 0
+        printf '  %s\n  %s\n%s\n' "$display_text" "$label" "$display_color"
 }
 
 human_status() {

@@ -70,6 +70,8 @@ listview {
 
 element {
         background-color: transparent;
+        border: 0px 0px 0px 3px;
+        border-color: transparent;
         border-radius: 5px;
         padding: 8px 10px;
         spacing: 10px;
@@ -79,14 +81,10 @@ element normal.normal {
         text-color: @fg;
 }
 
-element alternate.normal {
-        background-color: @panel;
-        text-color: @fg;
-}
-
 element selected.normal {
-        background-color: @accent;
-        text-color: #232634;
+        background-color: @panel-alt;
+        border-color: @accent;
+        text-color: @fg;
 }
 
 element urgent.normal {
@@ -94,8 +92,9 @@ element urgent.normal {
 }
 
 element selected.urgent {
-        background-color: @urgent;
-        text-color: #232634;
+        background-color: @panel-alt;
+        border-color: @urgent;
+        text-color: @urgent;
 }
 
 element-icon {
