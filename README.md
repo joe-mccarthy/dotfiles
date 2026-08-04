@@ -81,6 +81,8 @@ Keyboard layout switching is handled by `.local/bin/i3-keyboard-layout`. Use `$m
 
 Kitty uses JetBrains Mono, Catppuccin Frappe colours, subtle background opacity, powerline tabs, split-window keybindings, and terminal-friendly clipboard mappings. `Ctrl+c` copies selected text or interrupts when nothing is selected, and `Ctrl+v` pastes from the clipboard. Bash picks up terminal tools from `.bash_aliases`, including Starship, fzf, zoxide, direnv, eza, bat, btop, duf, procs, neovim, lazygit, and git shortcuts when those commands are installed.
 
+`init.sh` enables the systemd-managed OpenSSH agent socket. The agent process is socket-activated, so it may not appear in the process list until the first SSH connection. OpenSSH discovers the standard `~/.ssh/id_ed25519` key automatically, and the generic `AddKeysToAgent` setting caches it in the agent after the first successful passphrase prompt.
+
 VS Code is installed through apt as the `code` package. `init.sh` configures the Microsoft apt repository automatically before installing packages.
 
 Install the terminal toolchain manually with:

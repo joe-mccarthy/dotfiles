@@ -6,6 +6,13 @@ fi
 
 export XDG_CURRENT_DESKTOP=i3
 export DESKTOP_SESSION=i3
+
+# Use the systemd-managed OpenSSH agent. The socket starts with the user
+# session; ssh-agent itself is activated when an SSH client first uses it.
+if [ -S "${XDG_RUNTIME_DIR:-}/openssh_agent" ]; then
+        export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/openssh_agent"
+fi
+
 export BROWSER="${BROWSER:-firefox-esr}"
 export TERMINAL="${TERMINAL:-kitty}"
 export EDITOR="${EDITOR:-nvim}"

@@ -360,6 +360,24 @@ LOGIND
   printf 'Reboot or run sudo systemctl restart systemd-logind to apply it.\n'
 }
 
+configure_ssh_agent() {
+  if [ -f "$target_dir/.ssh/config" ]; then
+    chmod 600 "$target_dir/.ssh/config"
+  fi
+
+  if ! command -v systemctl >/dev/null 2>&1; then
+    printf 'systemctl not found; skipping OpenSSH agent setup.\n' >&2
+    return
+  fi
+
+  if ! systemctl --user enable --now ssh-agent.socket; then
+    printf 'Could not enable the user OpenSSH agent socket.\n' >&2
+    return
+  fi
+
+  printf 'Enabled user OpenSSH agent socket: %s/openssh_agent\n' "${XDG_RUNTIME_DIR:-/run/user/$UID}"
+}
+
 replace_symlink() {
   source_path="$1"
   link_path="$2"
@@ -552,8 +570,17 @@ configure_default_apps() {
 }
 
 prepare_stow_targets() {
+  ssh_target="$target_dir/.ssh"
   qutebrowser_target="$target_dir/.config/qutebrowser"
   qutebrowser_source="$dotfiles_dir/.config/qutebrowser"
+
+  # Keep ~/.ssh as a real private directory so Stow links only the tracked
+  # config file and can never fold machine-local private keys into this repo.
+  if [ ! -e "$ssh_target" ] && [ ! -L "$ssh_target" ]; then
+    install -d -m 0700 "$ssh_target"
+  elif [ -d "$ssh_target" ]; then
+    chmod 700 "$ssh_target"
+  fi
 
   if [ -L "$qutebrowser_target" ]; then
     if [ "$(readlink -m "$qutebrowser_target")" = "$qutebrowser_source" ]; then
@@ -600,6 +627,8 @@ if [ "$run_stow" -eq 1 ]; then
   prepare_stow_targets
   stow -d "$dotfiles_dir" -t "$target_dir" --restow .
 fi
+
+configure_ssh_agent
 
 if [ "$install_catppuccin" -eq 1 ]; then
   install_catppuccin_user_themes

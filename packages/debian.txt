@@ -1,5 +1,6 @@
 # Core dotfile tooling
 git
+openssh-client
 stow
 less
 jq

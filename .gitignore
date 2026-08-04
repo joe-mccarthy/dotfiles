@@ -5,6 +5,8 @@
 .config/secrets/env
 .config/secrets/*.local
 .config/i3/radio-stations.tsv
+.ssh/*
+!.ssh/config
 .cache/
 .local/state/
 .vim/.netrwhist
