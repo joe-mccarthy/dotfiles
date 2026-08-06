@@ -47,6 +47,11 @@ for_window [all] title_format "  %title  "
 for_window [all] title_window_icon on
 for_window [all] title_window_icon padding 6
 
+# Clients that hide their own decorations still need an i3 border so the
+# focused colour remains visible.
+for_window [class="^kitty$"] border pixel 2
+for_window [class="^firefox(-esr)?$"] border pixel 2
+
 # Window colours: border, background, text, indicator, child border.
 client.focused          $ctp_mauve    $ctp_base   $ctp_text     $ctp_mauve    $ctp_mauve
 client.focused_inactive $ctp_surface0 $ctp_mantle $ctp_subtext1 $ctp_surface0 $ctp_surface0
