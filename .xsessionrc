@@ -1,3 +1,6 @@
+# shellcheck shell=sh
+# shellcheck disable=SC1091
+
 if [ -r "$HOME/.config/i3/theme.env" ]; then
         set -a
         . "$HOME/.config/i3/theme.env"
@@ -6,6 +9,7 @@ fi
 
 export XDG_CURRENT_DESKTOP=i3
 export DESKTOP_SESSION=i3
+export PATH="$HOME/.local/bin:$PATH"
 
 # Use the systemd-managed OpenSSH agent. The socket starts with the user
 # session; ssh-agent itself is activated when an SSH client first uses it.
@@ -13,7 +17,7 @@ if [ -S "${XDG_RUNTIME_DIR:-}/openssh_agent" ]; then
         export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/openssh_agent"
 fi
 
-export BROWSER="${BROWSER:-firefox-esr}"
+export BROWSER="${BROWSER:-i3-browser}"
 export TERMINAL="${TERMINAL:-kitty}"
 export EDITOR="${EDITOR:-nvim}"
 export VISUAL="${VISUAL:-code}"

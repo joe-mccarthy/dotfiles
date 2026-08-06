@@ -10,7 +10,7 @@ cd ~/.dots
 ./init.sh
 ```
 
-Run `init.sh` as your normal user; it asks sudo only for apt and system changes. It installs missing Debian/Ubuntu apt packages from `packages/debian.txt`, refreshes the upstream user-local `yt-dlp` binary, then runs:
+Run `init.sh` as your normal user; it asks sudo only for apt and system changes. It installs missing Debian/Ubuntu packages from `packages/apt.txt`, refreshes the upstream user-local `yt-dlp` binary, then runs:
 
 ```sh
 stow -d ~/.dots -t ~ --restow .
@@ -18,13 +18,15 @@ stow -d ~/.dots -t ~ --restow .
 
 On a fresh GNOME install, `init.sh` also installs the i3 metapackage and Xorg session support first, so the login screen can offer an `i3` session.
 
+The installer targets Debian, Ubuntu 24.04 or newer, and closely related apt-based distributions. Required i3/Xorg packages still fail loudly, while optional packages that are unavailable in a particular release are reported and skipped. Package specs can contain alternatives separated by `|`; for example, the browser entry prefers Debian's `firefox-esr` and falls back to Ubuntu's `firefox` package.
+
 To only restow files without installing packages:
 
 ```sh
 ./init.sh --no-install
 ```
 
-To print the package manifest:
+To print the portable apt package manifest:
 
 ```sh
 ./init.sh --list-packages
@@ -41,7 +43,7 @@ The i3 desktop config now lives in this repo:
 - `.config/picom/` for compositor settings
 - `.local/bin/i3-*` and `.local/bin/i3blocks-status` for helper scripts
 
-The current setup includes curated i3 autostart, rofi launcher modes, a unified rofi control center, searchable keybinding help, a scratchpad terminal, Markdown notes, media controls, configurable internet radio, Firefox ESR, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3blocks display. The desktop shell, launcher, notifications, terminal, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
+The current setup includes curated i3 autostart, rofi launcher modes, a unified rofi control center, searchable keybinding help, a scratchpad terminal, Markdown notes, media controls, configurable internet radio, Firefox/Firefox ESR, CopyQ clipboard history, dunst notifications, screenshots, power menu, fast solid-color lock screen, picom compositor, monitor layout switching, keyboard layout switching, Bluetooth/network/audio helpers, wallpaper startup, GTK/Qt dark app theming, kitty terminal, and the customised i3bar/i3blocks display. The desktop shell, launcher, notifications, terminal, lock fallback, prompt, and status colours use Catppuccin Frappe with a mauve accent.
 
 After the first install from GNOME, log out, select `i3` from the login screen session chooser, then log back in.
 
@@ -63,7 +65,7 @@ Network and Bluetooth helpers are handled by `.local/bin/i3-network-menu` and `.
 
 Audio devices are handled by `.local/bin/i3-audio-menu`. Use `$mod+Shift+a` to switch output/input devices, mute, adjust volume, open `pavucontrol`, or show current audio status.
 
-Firefox ESR is the managed browser and default handler for HTTP, HTTPS, and HTML. Use `$mod+b` to open it. Browser profiles, extensions, and browsing data remain local to each machine.
+The portable `i3-browser` launcher is the default handler for HTTP, HTTPS, and HTML. It honours `I3_BROWSER`, then an existing `BROWSER` or XDG browser, and otherwise detects common Firefox-, Chromium-, and Chrome-family executables. This allows Debian to use Firefox ESR and Ubuntu to use Firefox without changing the i3 config. Use `$mod+b` to open it. Browser profiles, extensions, and browsing data remain local to each machine.
 
 Startup is intentionally curated by `.local/bin/i3-autostart` instead of running every GNOME autostart entry. It applies GTK/Qt theme environment, starts XSettings, and updates user dirs. Network and Bluetooth are controlled through the rofi helpers, so no network or Bluetooth tray icons are started.
 
@@ -81,19 +83,19 @@ Keyboard layout switching is handled by `.local/bin/i3-keyboard-layout`. Use `$m
 
 Kitty uses JetBrains Mono, Catppuccin Frappe colours, subtle background opacity, powerline tabs, split-window keybindings, and terminal-friendly clipboard mappings. `Ctrl+c` copies selected text or interrupts when nothing is selected, and `Ctrl+v` pastes from the clipboard. Bash picks up terminal tools from `.bash_aliases`, including Starship, fzf, zoxide, direnv, eza, bat, btop, duf, procs, neovim, lazygit, and git shortcuts when those commands are installed.
 
-`init.sh` enables the systemd-managed OpenSSH agent socket. The agent process is socket-activated, so it may not appear in the process list until the first SSH connection. OpenSSH discovers the standard `~/.ssh/id_ed25519` key automatically, and the generic `AddKeysToAgent` setting caches it in the agent after the first successful passphrase prompt.
+`init.sh` enables the distro-provided systemd OpenSSH agent socket when available and otherwise preserves an agent supplied by the desktop session. A socket-activated agent may not appear in the process list until the first SSH connection. OpenSSH discovers the standard `~/.ssh/id_ed25519` key automatically, and the generic `AddKeysToAgent` setting caches it after the first successful passphrase prompt.
 
 VS Code is installed through apt as the `code` package. `init.sh` configures the Microsoft apt repository automatically before installing packages.
 
-Install the terminal toolchain manually with:
+The terminal tools are listed in `packages/apt.txt` and installed when available in the current distribution. To inspect that list without installing anything:
 
 ```sh
-sudo apt-get install starship eza bat fzf fd-find ripgrep btop zoxide direnv tree ncdu duf hyperfine shellcheck shfmt lazygit git-delta glow procs neovim tmux fastfetch fonts-jetbrains-mono fonts-font-awesome fonts-powerline fonts-noto-color-emoji
+./init.sh --list-packages
 ```
 
 ## Backup And Restore
 
-Restore instructions live in `RESTORE.md`. The package manifest lives in `packages/debian.txt`.
+Restore instructions live in `RESTORE.md`. The portable apt package manifest lives in `packages/apt.txt`.
 
 Use the backup helper before committing:
 

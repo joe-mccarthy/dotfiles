@@ -1,9 +1,15 @@
+# shellcheck shell=bash
+# shellcheck disable=SC1091
+
 if [ -r "$HOME/.config/secrets/env" ]; then
   . "$HOME/.config/secrets/env"
 fi
 
-alias lg="lazygit"
 alias ap="ansible-playbook --ask-vault-pass --ask-become-pass -e @~/ansible/vault.yml -i ~/ansible/homelab.yml"
+
+if command -v lazygit >/dev/null 2>&1; then
+  alias lg="lazygit"
+fi
 
 # Terminal toolkit
 if command -v batcat >/dev/null 2>&1 && ! command -v bat >/dev/null 2>&1; then
@@ -53,7 +59,9 @@ alias gp="git push"
 alias gl="git log --oneline --decorate --graph --all -20"
 alias gd="git diff"
 alias gds="git diff --staged"
-alias ff="fastfetch"
+if command -v fastfetch >/dev/null 2>&1; then
+  alias ff="fastfetch"
+fi
 
 # Fuzzy finder defaults
 if command -v fd >/dev/null 2>&1; then

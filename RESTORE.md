@@ -18,7 +18,7 @@ git clone git@github.com:joe-mccarthy/dotfiles.git ~/.dots
 cd ~/.dots
 ```
 
-Install packages and stow files. Run this as your normal user; the script asks sudo for apt and system changes. This also configures the Microsoft apt repository before installing VS Code and refreshes the upstream user-local `yt-dlp` binary:
+Install packages and stow files. Run this as your normal user; the script asks sudo for apt and system changes. This supports Debian, Ubuntu 24.04 or newer, and related apt-based distributions; unavailable optional packages are skipped with a warning. It also configures the Microsoft apt repository before installing VS Code and refreshes the upstream user-local `yt-dlp` binary:
 
 ```sh
 ./init.sh

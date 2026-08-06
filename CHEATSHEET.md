@@ -7,7 +7,7 @@
 | Binding | Action |
 | --- | --- |
 | `Mod+Return` | Open kitty |
-| `Mod+b` | Open Firefox ESR |
+| `Mod+b` | Open the default web browser |
 | `Mod+Shift+f` | Open Thunar |
 | `Mod+Shift+q` | Close focused window |
 | `Mod+Shift+x` | Lock screen |

@@ -11,7 +11,8 @@ fi
 
 export XDG_CURRENT_DESKTOP=i3
 export DESKTOP_SESSION=i3
-export BROWSER="${BROWSER:-firefox-esr}"
+export PATH="$HOME/.local/bin:$PATH"
+export BROWSER="${BROWSER:-i3-browser}"
 export TERMINAL="${TERMINAL:-kitty}"
 export EDITOR="${EDITOR:-nvim}"
 export VISUAL="${VISUAL:-code}"
@@ -19,7 +20,7 @@ export VISUAL="${VISUAL:-code}"
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then
         dbus-update-activation-environment --systemd \
                 DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP DESKTOP_SESSION \
-                BROWSER TERMINAL EDITOR VISUAL \
+                PATH BROWSER TERMINAL EDITOR VISUAL \
                 GTK_THEME QT_STYLE_OVERRIDE QT_QPA_PLATFORMTHEME XCURSOR_THEME XCURSOR_SIZE >/dev/null 2>&1 || true
 fi
 

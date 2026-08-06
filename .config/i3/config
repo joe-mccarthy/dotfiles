@@ -124,10 +124,10 @@ gaps outer 8px
 smart_gaps off
 
 # start a terminal
-bindsym $mod+Return exec --no-startup-id /usr/bin/kitty
+bindsym $mod+Return exec --no-startup-id kitty
 
 # start browser
-bindsym $mod+b exec --no-startup-id firefox-esr
+bindsym $mod+b exec --no-startup-id ~/.local/bin/i3-browser
 
 # start file manager
 bindsym $mod+Shift+f exec --no-startup-id thunar

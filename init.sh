@@ -6,14 +6,14 @@ target_dir="$HOME"
 install_deps=1
 install_catppuccin=1
 run_stow=1
-package_file="$dotfiles_dir/packages/debian.txt"
+package_file="$dotfiles_dir/packages/apt.txt"
 apt_updated=0
 catppuccin_only=0
+list_packages=0
 
 microsoft_keyring="/usr/share/keyrings/microsoft.gpg"
 microsoft_source="/etc/apt/sources.list.d/vscode.list"
-microsoft_repo="deb [arch=amd64 signed-by=$microsoft_keyring] https://packages.microsoft.com/repos/code stable main"
-firefox_desktop="firefox-esr.desktop"
+browser_desktop="dotfiles-browser.desktop"
 thunar_desktop="thunar.desktop"
 kitty_desktop="kitty.desktop"
 loupe_desktop="org.gnome.Loupe.desktop"
@@ -42,13 +42,13 @@ Options:
   --no-catppuccin             Do not download/install Catppuccin GTK/Qt themes
   --catppuccin-only           Only install/apply Catppuccin GTK/Qt themes and restow config
   --no-stow                   Do not run stow
-  --packages FILE             Read apt packages from FILE
-  --list-packages             Print packages and exit
+  --packages FILE             Read apt package specs from FILE
+  --list-packages             Print package specs and exit
   -h, --help                  Show this help
 USAGE
 }
 
-read_packages() {
+read_package_specs() {
   awk '
     /^[[:space:]]*#/ { next }
     /^[[:space:]]*$/ { next }
@@ -81,11 +81,51 @@ package_installed() {
   dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q 'install ok installed'
 }
 
+package_available() {
+  local candidate
+
+  candidate="$(apt-cache policy "$1" 2>/dev/null | awk '$1 == "Candidate:" { print $2; exit }')"
+  [ -n "$candidate" ] && [ "$candidate" != "(none)" ]
+}
+
+first_installed_alternative() {
+  local spec="$1"
+  local alternative
+  local alternatives=()
+
+  IFS='|' read -r -a alternatives <<< "$spec"
+  for alternative in "${alternatives[@]}"; do
+    if package_installed "$alternative"; then
+      printf '%s\n' "$alternative"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+first_available_alternative() {
+  local spec="$1"
+  local alternative
+  local alternatives=()
+
+  IFS='|' read -r -a alternatives <<< "$spec"
+  for alternative in "${alternatives[@]}"; do
+    if package_available "$alternative"; then
+      printf '%s\n' "$alternative"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 install_missing_packages() {
-  label="$1"
+  local label="$1"
   shift
 
-  missing=()
+  local package
+  local missing=()
 
   for package in "$@"; do
     if ! package_installed "$package"; then
@@ -101,14 +141,57 @@ install_missing_packages() {
   printf 'Installing %s packages: %s\n' "$label" "${missing[*]}"
 
   apt_update_once
-  run_as_root apt-get install -y "${missing[@]}"
+  run_as_root apt-get install -y -- "${missing[@]}"
+}
+
+install_available_package_specs() {
+  local label="$1"
+  shift
+
+  local package
+  local spec
+  local installable=()
+  local skipped=()
+  local unresolved=()
+
+  for spec in "$@"; do
+    if ! first_installed_alternative "$spec" >/dev/null; then
+      unresolved+=("$spec")
+    fi
+  done
+
+  if [ "${#unresolved[@]}" -eq 0 ]; then
+    printf '%s packages are already installed.\n' "$label"
+    return
+  fi
+
+  # Refresh metadata before deciding that an optional package is unavailable.
+  apt_update_once
+
+  for spec in "${unresolved[@]}"; do
+    if package="$(first_available_alternative "$spec")"; then
+      installable+=("$package")
+    else
+      skipped+=("$spec")
+    fi
+  done
+
+  if [ "${#installable[@]}" -gt 0 ]; then
+    install_missing_packages "$label" "${installable[@]}"
+  fi
+
+  if [ "${#skipped[@]}" -gt 0 ]; then
+    printf 'Warning: skipping %s package specs unavailable on this release: %s\n' \
+      "$label" "${skipped[*]}" >&2
+  fi
 }
 
 remove_installed_packages() {
-  label="$1"
+  local label="$1"
   shift
 
-  installed=()
+  local package
+  local installed=()
 
   for package in "$@"; do
     if package_installed "$package"; then
@@ -126,7 +209,21 @@ remove_installed_packages() {
 }
 
 desktop_file_exists() {
-  [ -r "/usr/share/applications/$1" ] || [ -r "$HOME/.local/share/applications/$1" ]
+  local data_dir
+  local desktop_file="$1"
+  local data_dirs=("$HOME/.local/share" "/usr/local/share" "/usr/share" "/var/lib/snapd/desktop")
+  local configured_dirs=()
+
+  IFS=':' read -r -a configured_dirs <<< "${XDG_DATA_DIRS:-}"
+  data_dirs+=("${configured_dirs[@]}")
+
+  for data_dir in "${data_dirs[@]}"; do
+    if [ -n "$data_dir" ] && [ -r "$data_dir/applications/$desktop_file" ]; then
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 set_xdg_mime_defaults() {
@@ -192,8 +289,7 @@ while [ "$#" -gt 0 ]; do
       package_file="${1:-}"
       ;;
     --list-packages)
-      read_packages
-      exit 0
+      list_packages=1
       ;;
     -h|--help)
       usage
@@ -206,6 +302,16 @@ while [ "$#" -gt 0 ]; do
   esac
   shift || true
 done
+
+if [ "$list_packages" -eq 1 ]; then
+  if [ ! -r "$package_file" ]; then
+    printf 'Package manifest not found: %s\n' "$package_file" >&2
+    exit 1
+  fi
+
+  read_package_specs
+  exit 0
+fi
 
 install_apt_dependencies() {
   if [ ! -r "$package_file" ]; then
@@ -221,8 +327,8 @@ install_apt_dependencies() {
   ensure_i3_desktop
   ensure_microsoft_code_repo
 
-  mapfile -t packages < <(read_packages)
-  install_missing_packages "apt dependency" "${packages[@]}"
+  mapfile -t package_specs < <(read_package_specs)
+  install_available_package_specs "apt dependency" "${package_specs[@]}"
   remove_installed_packages "qutebrowser" qutebrowser
   install_upstream_yt_dlp
 }
@@ -264,10 +370,12 @@ install_catppuccin_apt_dependencies() {
     return
   fi
 
-  install_missing_packages "Catppuccin GTK/Qt" \
+  install_missing_packages "Catppuccin installer" \
     git \
     curl \
-    python3 \
+    python3
+
+  install_available_package_specs "Catppuccin GTK/Qt" \
     qt5ct \
     qt6ct \
     qt5-style-kvantum \
@@ -277,7 +385,21 @@ install_catppuccin_apt_dependencies() {
 }
 
 manifest_contains_package() {
-  read_packages | grep -qx "$1"
+  local wanted="$1"
+  local spec
+  local alternative
+  local alternatives=()
+
+  while IFS= read -r spec; do
+    IFS='|' read -r -a alternatives <<< "$spec"
+    for alternative in "${alternatives[@]}"; do
+      if [ "$alternative" = "$wanted" ]; then
+        return 0
+      fi
+    done
+  done < <(read_package_specs)
+
+  return 1
 }
 
 ensure_i3_desktop() {
@@ -292,9 +414,25 @@ ensure_i3_desktop() {
 }
 
 ensure_microsoft_code_repo() {
+  local microsoft_arch
+  local microsoft_repo
+
   if ! manifest_contains_package code; then
     return
   fi
+
+  microsoft_arch="$(dpkg --print-architecture 2>/dev/null || true)"
+  case "$microsoft_arch" in
+    amd64|arm64|armhf)
+      ;;
+    *)
+      printf 'Microsoft VS Code apt repository does not support this architecture: %s\n' \
+        "${microsoft_arch:-unknown}" >&2
+      return
+      ;;
+  esac
+
+  microsoft_repo="deb [arch=$microsoft_arch signed-by=$microsoft_keyring] https://packages.microsoft.com/repos/code stable main"
 
   prereqs=(ca-certificates curl gpg)
   missing_prereqs=()
@@ -346,7 +484,7 @@ configure_logind_power_policy() {
   policy_file=$(mktemp)
   cat > "$policy_file" <<LOGIND
 [Login]
-HandleLidSwitch=)
+HandleLidSwitch=suspend
 HandleLidSwitchExternalPower=ignore
 HandleLidSwitchDocked=ignore
 HoldoffTimeoutSec=30s
@@ -370,12 +508,23 @@ configure_ssh_agent() {
     return
   fi
 
-  if ! systemctl --user enable --now ssh-agent.socket; then
-    printf 'Could not enable the user OpenSSH agent socket.\n' >&2
+  if systemctl --user list-unit-files ssh-agent.socket --no-legend 2>/dev/null |
+    grep -q '^ssh-agent\.socket'; then
+    if ! systemctl --user enable --now ssh-agent.socket; then
+      printf 'Could not enable the user OpenSSH agent socket.\n' >&2
+      return
+    fi
+
+    printf 'Enabled user OpenSSH agent socket: %s/openssh_agent\n' "${XDG_RUNTIME_DIR:-/run/user/$UID}"
     return
   fi
 
-  printf 'Enabled user OpenSSH agent socket: %s/openssh_agent\n' "${XDG_RUNTIME_DIR:-/run/user/$UID}"
+  if [ -n "${SSH_AUTH_SOCK:-}" ] && [ -S "$SSH_AUTH_SOCK" ]; then
+    printf 'Using the desktop session SSH agent: %s\n' "$SSH_AUTH_SOCK"
+    return
+  fi
+
+  printf 'OpenSSH user socket unit not found; the desktop session may provide its own SSH agent.\n' >&2
 }
 
 replace_symlink() {
@@ -484,12 +633,12 @@ KVANTUM
 }
 
 configure_default_browser() {
-  if ! desktop_file_exists "$firefox_desktop"; then
-    printf 'Firefox ESR desktop file not found; skipping default browser setup.\n'
+  if ! desktop_file_exists "$browser_desktop"; then
+    printf 'Portable browser desktop file not found; skipping default browser setup.\n'
     return
   fi
 
-  set_xdg_mime_defaults "$firefox_desktop" "Firefox ESR" \
+  set_xdg_mime_defaults "$browser_desktop" "Web browser" \
     text/html \
     application/xhtml+xml \
     x-scheme-handler/http \
@@ -498,7 +647,7 @@ configure_default_browser() {
     x-scheme-handler/unknown
 
   if command -v xdg-settings >/dev/null 2>&1; then
-    xdg-settings set default-web-browser "$firefox_desktop" >/dev/null 2>&1 || true
+    xdg-settings set default-web-browser "$browser_desktop" >/dev/null 2>&1 || true
   fi
 }
 

@@ -1,3 +1,6 @@
+# Shared apt package manifest for Debian, Ubuntu, and derivatives.
+# Use a vertical bar for package-name alternatives in preference order.
+
 # Core dotfile tooling
 git
 openssh-client
@@ -40,7 +43,7 @@ playerctl
 mpv
 yt-dlp
 socat
-firefox-esr
+firefox-esr|firefox
 thunar
 thunar-volman
 thunar-archive-plugin
